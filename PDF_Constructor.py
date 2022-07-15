@@ -37,39 +37,63 @@ LEFT_PLOT = 5 # Plot in left side of PDF
 RIGHT_PLOT = 5+WIDTH/2 # right side of PDF
 
 
+
+def IOS_or_Android(txt, regexs):
+
+    for regex in regexs["IOS"].values():
+        if re.search(regex, txt) != None:
+            return "IOS"
+    for regex in regexs["Android"].values():
+        if re.search(regex, txt) != None:
+            return "Android"
+    print(txt)
+    return "IDK"
+
 def get_data(file:str) -> list: # DESCRIPTION: extract the info inside the .txt file
     # PARAMETERS: file (str) = file that is going to be extracted
     # RETURNS: list of lists, where each sublist contains [date, time, sender, message] for every message
 
     fp = open(file, "r", encoding="utf8")
-    info = []
+    data = []
 
     trame = fp.readline()
+
+    regexs = {"IOS":{"normal":"\[(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}:\d{2})\] (.*): (.*)$",
+                     "info":"\[(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}:\d{2})\] (.*)$"},
+          "Android":{"normal":"(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) - (.*): (.*)$",
+                     "info":"(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) - (.*)$"}}
+
+    device = IOS_or_Android(trame, regexs)
+
     while trame != "": # Read file till EOF        .--- Regex to match with trame (header + payload)
                        #                           v
-        m = re.search("(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) - (\S[^:]*?): (.*)$", trame)
-        if m != None: # Normal message
-            date = m.group(1)
-            time = m.group(2)+":00"
-            who = m.group(3)
-            message = m.group(4)
-            info.append([date, time, who, message]) # Appending data into big list
+        norm = re.search(regexs[device]["normal"], trame)
+        info = re.search(regexs[device]["info"], trame)
 
-        else:
-            m = re.search("(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) - (.*)$", trame)
-            if m != None: # Informational messages (ex. X left the group / Y changed the group photo)
-                date = m.group(1)
-                time = m.group(2)+":00"
+        if norm != None or info != None: 
+            if norm != None: # Normal message
+                date = norm.group(1)
+                time = norm.group(2)
+                who = norm.group(3)
+                message = norm.group(4)
+            else:
+                date = info.group(1)
+                time = info.group(2)
                 who = "info"
-                message = m.group(3)[1:] # Removing Unicode character that I don't know how to avoid in regex
-                info.append([date, time, who, message])
+                message = info.group(3)
             
-            elif len(info) != 0: # Multiline message, add it to last part of message (condition added to avoid crashes)
-                info[-1][3] += "\n"+trame
+            if device == "Android":
+                time += ":00"
+            if message.find("‎") != -1:
+                message = message[message.find("‎")+1:]
+            data.append([date, time, who, message]) # Appending data into big list
+            
+        elif len(data) != 0: # Multiline message, add it to last part of message (condition added to avoid crashes)
+                data[-1][3] += "\n"+trame
 
         trame = fp.readline()
-    
-    return info
+
+    return data
 
 
 def spider_plot(categories:list, values:list) -> None: # DESCRIPTION: Create spider plot 
@@ -156,6 +180,10 @@ def add_labels_to_bar(plot:plt, labels:list, font_size:int=18, dir:str="vertical
             )
     
     return
+
+
+def remove_header(df:pd.DataFrame) -> pd.DataFrame:
+    return df[3:].reset_index() # It should check if the header is present, but for now the function just removes the first messages
 
 
 def get_message_freq_dict(messages:pd.Series, blacklist:list=[]) -> dict: # DESCRIPTION: Create dict with frequency of words
@@ -376,6 +404,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.df = pd.DataFrame(get_data(file), columns=["date", "time", "who", "message"]) # Creating Dataframe
         self.df.date = pd.to_datetime(self.df.date, format="%d/%m/%y") # Setting dtypes
         self.df.time = pd.to_timedelta(self.df.time)
+
+        self.df = remove_header(self.df) # When people change phone and don't have a backup for their whatsapp messages, 
+                                # all of their previous conversations are eliminated, but the "X created this group" message;
+                                # when plotting the number of messages per interval, this can create an ugly plot, this function avoids that
 
         m = re.search("Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
         self.name = m.group(1) if m != None else ""
@@ -717,6 +749,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         plt.title("Numero di messaggio per periodo del giorno:")
 
         x_pos = [timedelta(hours=i//2, minutes=30*(i%2)) for i in range(0, 48)]
+        x_pos = x_pos[6:]+x_pos[:6] 
         slotted_times = [i.floor("30min") for i in self.df.time]
 
         y_pos = [slotted_times.count(i) for i in x_pos]
@@ -762,7 +795,7 @@ def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages 
 
     pdf.add_message(type="message_count", pos="right")
 
-    pdf.plot_day_of_the_week(pos="right")
+    pdf.plot_time_of_messages(pos="right")
 
     pdf.add_message(type="longest_active_streak", pos="right")
 
@@ -795,5 +828,5 @@ def main(file):
     pdf.save()
 
 if __name__ == "__main__":
-    file = "text_files/Chat WhatsApp con ESEMPIO.txt"
+    file = "text_files/Chat WhatsApp con 3A.txt"
     main(file)
