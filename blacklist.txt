@@ -1,5 +1,17 @@
 media
+sticker
+immagine
+questo
+video
+audio
+messaggio
+stato
+eliminato
+incluso
 omessi
+omesso
+omessa
+omesse
 a
 abbia
 abbiamo
