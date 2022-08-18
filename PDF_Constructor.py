@@ -13,8 +13,8 @@ from string import punctuation # To remove all the punctuation in a message
 from datetime import date, timedelta # To manipulate the dates we
 from shutil import move # To move the pdf inside the correct directory
 from os import remove, path # To remove the images created
+from zipfile import ZipFile # To unzip a zip file
 from math import pi # To use polar coordinates in spider plot
-
 from wordcloud import WordCloud # To remove the images created 
 
 # COLOR PALETTE USED:     #075e55 | #128c7f |  #26d367 | #dcf8c7 | #ece5dd 
@@ -36,7 +36,14 @@ CHAR_PER_LINE = 50
 LEFT_PLOT = 5 # Plot in left side of PDF
 RIGHT_PLOT = 5+WIDTH/2 # right side of PDF
 
-
+def font_friendly(txt): # DESCRIPTION: Change string by removing of all bad emojis that make the PDF look bad (LIST COULD BE UPDATED)
+    bad_emojis = ["️", "⃣", "🏽", "🏼", "🏾", "🏻", "🏿"]
+    new_txt = ""
+    for i in txt:
+        if i not in bad_emojis:
+            new_txt += i
+    
+    return new_txt
 
 def IOS_or_Android(txt, regexs):
 
@@ -58,9 +65,9 @@ def get_data(file:str) -> list: # DESCRIPTION: extract the info inside the .txt 
 
     trame = fp.readline()
 
-    regexs = {"IOS":{"normal":"\[(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}:\d{2})\] (.*): (.*)$",
+    regexs = {"IOS":{"normal":"\[(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}:\d{2})\] (.*?): (.*)$",
                      "info":"\[(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}:\d{2})\] (.*)$"},
-          "Android":{"normal":"(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) - (.*): (.*)$",
+          "Android":{"normal":"(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) - (.*?): (.*)$",
                      "info":"(\d{2}\/\d{2}\/\d{2}), (\d{2}:\d{2}) - (.*)$"}}
 
     device = IOS_or_Android(trame, regexs)
@@ -74,7 +81,7 @@ def get_data(file:str) -> list: # DESCRIPTION: extract the info inside the .txt 
             if norm != None: # Normal message
                 date = norm.group(1)
                 time = norm.group(2)
-                who = norm.group(3)
+                who = font_friendly(norm.group(3))
                 message = norm.group(4)
             else:
                 date = info.group(1)
@@ -84,8 +91,10 @@ def get_data(file:str) -> list: # DESCRIPTION: extract the info inside the .txt 
             
             if device == "Android":
                 time += ":00"
-            if message.find("‎") != -1:
-                message = message[message.find("‎")+1:]
+            
+            
+            while message.find("‎") != -1:
+                message = message[:message.find("‎")]+message[message.find("‎")+1:]
             data.append([date, time, who, message]) # Appending data into big list
             
         elif len(data) != 0: # Multiline message, add it to last part of message (condition added to avoid crashes)
@@ -183,8 +192,9 @@ def add_labels_to_bar(plot:plt, labels:list, font_size:int=18, dir:str="vertical
 
 
 def remove_header(df:pd.DataFrame) -> pd.DataFrame:
-    return df[3:].reset_index() # It should check if the header is present, but for now the function just removes the first messages
-
+        return df[3:].reset_index() if len(df) > 3 else df 
+        # It should check if the header is present, but for now the function just removes the first messages (TO BE UPDATED)
+    
 
 def get_message_freq_dict(messages:pd.Series, blacklist:list=[]) -> dict: # DESCRIPTION: Create dict with frequency of words
     # PARAMETERS: messages (Series): list of strings of messages | blacklist (list): if wanted don't consider some words
@@ -383,11 +393,11 @@ def transform_text(txt:str): # DESCRIPTION: Transform string of text to fit into
 
     return new_txt
     
-    
+
 
 class PDF_Constructor(FPDF): # Main class that is used in this program, inherits FPDF class, adding new functionalities
 
-    def __init__(self, file): 
+    def __init__(self, file:str): 
         # DESCRIPTION: Initialize class, with FPDF's initialization a dataframe is created and cleaned,
         # the group (or chatters) name and a counter are stored, Structure with basic info is built
         
@@ -396,7 +406,18 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             self.ok = 0
         else:
             self.ok = 1
+        
+        m = re.search("Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
+        self.name = font_friendly(m.group(1)) if m != None else ""
+        
 
+        if file.endswith(".zip"):
+            with ZipFile(file, 'r') as zip_ref:
+                m = re.search("WhatsApp Chat - (.+).zip", file)
+                self.name = font_friendly(m.group(1)) if m != None else ""
+                zip_ref.extractall("text_files")
+                file = "text_files/_chat.txt"            
+                
         FPDF.__init__(self) 
 
         self.counter = 0
@@ -407,16 +428,13 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
 
         self.df = remove_header(self.df) # When people change phone and don't have a backup for their whatsapp messages, 
                                 # all of their previous conversations are eliminated, but the "X created this group" message;
-                                # when plotting the number of messages per interval, this can create an ugly plot, this function avoids that
+                                # when plotting the number of messages per interval, this can create an ugly plot. This function avoids that
 
-        m = re.search("Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
-        self.name = m.group(1) if m != None else ""
         self.group = True
-
         if len(set(self.df.who)) == 3 and "info" in set(self.df.who): # <- If it's a private chat
             self.group = False # NOT a group chat
             lst = list(set(self.df.who))
-            lst.pop("info")
+            lst.remove("info")
             self.name = tuple([lst[lst.index(self.name)], lst[not lst.index(self.name)]]) # self.group contains name of two chatters
             
 
@@ -500,7 +518,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         # PARAMETERS: type (str) = type of message to write, available types listed inside of if-else list
         # x, y (int) = coordinates inside of PDF file
 
-        # Dictionaries don't work :(, seems like if-else conditons is the only way to go, even if ugly 
+        # Dictionaries don't work :(, the only alternative I could find were if-else conditons, even if ugly 
         # Most operations are difficult to read, but are really similar to the ones used in plot, check comments 
         # inside those functions for explanation
 
@@ -809,9 +827,13 @@ def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages 
 def seed2(pdf:PDF_Constructor): # Another possible combination (for private chats)
     
     pdf.plot_emojis("left", who=pdf.name[0])
+
     pdf.plot_emojis("right", who=pdf.name[1], reverse=True)
+
     pdf.plot_number_of_messages("left")
+
     pdf.plot_time_of_messages("right")
+
     pdf.plot_most_active_people("left")
 
 
@@ -820,13 +842,12 @@ def main(file):
     
     pdf = PDF_Constructor(file)
 
-    if not pdf.group: # Private chat (two real people + info)
-        seed2(pdf)
-    else:
-        seed1(pdf)
+    seed1(pdf)
 
     pdf.save()
 
+
+
 if __name__ == "__main__":
-    file = "text_files/Chat WhatsApp con 3A.txt"
+    file = "text_files/Chat Whatsapp con ESEMPIO.txt"
     main(file)

@@ -1,18 +1,5 @@
-pdfs/Analisi della chat ⚽Champions Match⚽.pdf
-pdfs/Analisi della chat 3A.pdf
-pdfs/Analisi della chat 5B.pdf
-pdfs/Analisi della chat Auar femili.pdf
-pdfs/Analisi della chat COM-FEI MATRICOLE 21_22.pdf
-pdfs/Analisi della chat I Crippa.....pdf
-pdfs/Analisi della chat tra Cami e Tommaso.pdf
-
-text_files/Chat WhatsApp con ⚽Champions Match⚽.txt
-text_files/Chat WhatsApp con 3A.txt
-text_files/Chat WhatsApp con 5B.txt
-text_files/Chat WhatsApp con Auar femili.txt
-text_files/Chat WhatsApp con COM-FEI MATRICOLE 21_22.txt
-text_files/Chat WhatsApp con I Crippa.....txt
-text_files/Chat WhatsApp con Cami.txt
-
+pdfs/*
+text_files/*
 track_progress
 prova.py
+tuto.pdf
