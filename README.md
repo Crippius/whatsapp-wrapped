@@ -1,15 +1,20 @@
 # whatsapp-wrapped
 
 ## Description
-This repositiìory contains the project I developed during the summmer of '22, in which I created an API that, 
-when you input an exported whatsapp text file from a group/direct chat, a pdf file is created with lots of informations (IN ITALIAN ONLY (FOR NOW))
+This repositiìory contains the project I developed during the summmer of '22, in which I created a script 
+that takes an exported .txt file from a Whatsapp chat and
+outputs a PDF that explores lots of interesting information and data about its conversations through graphs
+and made-up messages.
+
+The program supports both IOS and Android exported files.
+The supported languages are English and Italian.
 
 ## How to export a Whatsapp chat
 * Go to the chat you want to want to know more
 * Click the three dots on the top right of your screen 
-* Click "More" >
+* Click "More"
 * Click "Export chat" 
-* Click "Without media" (Important!)
+* Click "Without media"
 * Download it into your device 
 * Use it in this script!
 
