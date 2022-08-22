@@ -219,7 +219,7 @@ def get_message_freq_dict(messages:pd.Series, blacklist:list=[]) -> dict: # DESC
     return most_used_words
 
 
-def concentrate_values(in_dict:dict, max_values:int, others:bool) -> dict: 
+def concentrate_values(in_dict:dict, max_values:int, others:bool, lang="en") -> dict: 
     # DESCRIPTION: make dictionary smaller by remvoing keys with smaller values
     # PARAMETERS: in_dict (dict) = dictionary that is going to be modified | max_values (int) = number of unique dict keys
     # others (bool) = add additional key with sum of values of the last keys in it
@@ -235,12 +235,13 @@ def concentrate_values(in_dict:dict, max_values:int, others:bool) -> dict:
         if len(list(in_dict.keys())[max_values-others:]) == 1: # Edge case: when only one key is remaining, don't show "Altri", but the key
             out_dict[list(in_dict.keys())[max_values-others]] = in_dict[list(in_dict.keys())[max_values-others]]
         else:
-            out_dict["Altri"] = sum([i for i in list(in_dict.values())[max_values-others:]])
+            txt = {"en":"Others", "it":"Altri"}
+            out_dict[txt[lang]] = sum([i for i in list(in_dict.values())[max_values-others:]])
     
     return out_dict
 
 
-def sort_dict(in_dict:dict, max_values:int=-1, reverse:bool=True, others:bool=True) -> dict: 
+def sort_dict(in_dict:dict, max_values:int=-1, reverse:bool=True, others:bool=True, lang="en") -> dict: 
     # DESCRIPTION: Given a dict, it sorts its keys by its values (and concentrates them if its wanted)
     # PARAMETERS: in_dict (dict) = dictionary that is modified | max_values (int) = number of unique dict keys (if -1 no maximum)
     # reverse (bool) = return dict in decreasing order if true | others (bool) = include condensed keys w/ smaller keys
@@ -251,7 +252,7 @@ def sort_dict(in_dict:dict, max_values:int=-1, reverse:bool=True, others:bool=Tr
         out_dict[w] = in_dict[w]
 
     if max_values != -1: # Concentrating keys (if wanted)
-        out_dict = concentrate_values(out_dict, max_values, others)
+        out_dict = concentrate_values(out_dict, max_values, others, lang)
 
     if reverse: # Reversing (if true)
         out_dict = {k:out_dict[k] for k in list(out_dict.keys())[::-1]}
@@ -381,7 +382,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.cell(15, 0, "")
         self.set_text_color(255, 255, 255)  # Adding top part
         if self.group:
-            txt = {"en":f"Analysis of {self.name} chat", "it":f"Analisi della chat {self.name}"}
+            txt = {"en":f"Analysis of {self.name} chat", 
+                   "it":f"Analisi della chat {self.name}"}
             self.multi_cell(WIDTH-70, 0, transform_text(txt[self.lang]))
         else:
             txt = {"en":f"Analysis of {self.name[0]} and {self.name[1]} chat"[:CHAR_PER_LINE], 
@@ -502,8 +504,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             best, month = max_and_index(lst)
             month = list(set(self.df.date.dt.to_period('M').dt.to_timestamp()))[month].strftime('%m/%y')
 
-            txt = {"en":f"Most active month: 👇🏻\n{month} ({best} messaggi)",
-                   "it":f"Mese più attivo: 👇🏻\n{month} ({best} messaggi)"}
+            txt = {"en":f"Most active month: 👇\n{month} ({best} messaggi)",
+                   "it":f"Mese più attivo: 👇\n{month} ({best} messaggi)"}
             return txt[self.lang]
 
         def most_active_weekday(self): # Return the weekday people chatted the most + # of messages sent that weekday
@@ -518,9 +520,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             people = {k:len(self.df[self.df.who == k]) for k in set(self.df.who)}
             person, total = list(sort_dict(people, 1, others=False).items())[0]
             percent = 100*round(total/len(self.df), 2)
+            person = font_friendly(person)
 
-            txt = {"en":f"{person} is the most active person!\n They wrote {total} messages ({percent}% of the total) 🤙🏻",
-                   "it":f"{person} è la persona più attiva!\n Ha scritto {total} messaggi ({percent}% del totale) 🤙🏻"}
+            txt = {"en":f"{person} is the most active person!\n They wrote {total} messages ({percent}% of the total) 🤙",
+                   "it":f"{person} è la persona più attiva!\n Ha scritto {total} messaggi ({percent}% del totale) 🤙"}
             return txt[self.lang]
         
         def longest_active_streak(self): # Return the start and end dates of the longest streak of days where the chat has been active
@@ -568,8 +571,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                     if who not in people:
                         people[who] = 0
                     people[who] += 1
-            people = sort_dict(people, 1, others=False)
-            person = list(people.keys())[0]
+            people = sort_dict(people, 1, others=False, lang=self.lang)
+            person = font_friendly(list(people.keys())[0])
+            
             txt = {"en":f"It's usually {person} who writes first... 🥇", 
                    "it":f"Solitamente è {person} che scrive per prim*... 🥇"}
             return txt[self.lang]
@@ -610,6 +614,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             return txt[self.lang]
 
         # TODO: add # of vocals, images and stickers sent (for IOS users only) 
+        # TODO: add most active time of day
+        # TODO: add most used emoji
             
         possibilities = ["message_count", "active_days", "messages_per_day", "file_count", "most_active_day", "most_active_year", 
                          "most_active_month", "most_active_weekday", "most_active_person", "longest_active_streak", 
@@ -637,10 +643,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.multi_cell(w=WIDTH/2-5, txt=transform_text(txt), h=5) # Putting text inside bubble
 
 
-    def plot_emojis(self, pos:str, who:str="", reverse:bool=False) -> None: 
+    def plot_emojis(self, pos:str, who:str="", reverse:bool=False, info:bool=True) -> None: 
         # DESCRIPTION: plot most used emojis in chat, place them in PDF given x/y coordinates
         # PARAMETERS: pos ("left"/"right") = position in the pdf | who (str) = if used get emojis of only x character
-        # reverse (bool) = if true create barh plot from right to left
+        # reverse (bool) = if true create barh plot from right to left | info (bool) = add # of emojis to the right of plot
         
         if not self.prep():
             return
@@ -663,7 +669,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if "🏼" in emojis: # <- Totally different character from last if statement...
             emojis.pop("🏼")
 
-        emojis = sort_dict(emojis, 7, reverse=reverse, others=False)
+        emojis = sort_dict(emojis, 7, reverse=reverse, others=False, lang=self.lang)
 
         if len(emojis.keys()) == 0: # Adding a pair inside the empty dict to avoid crash
             emojis["🏼"] = 0
@@ -672,9 +678,13 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         plt.title(title[self.lang]) # Plotting
         plot = plt.bar(emojis.keys(), emojis.values(), color="#26d367")
         plt.xticks(fontsize=20)
-        plt.text(x=plt.xlim()[0]+1 if reverse else plt.xlim()[1]-1, y=plt.ylim()[1]*9/10, s=f"{sum(emojis.values())} emoji\ntotali 😯", 
-                 ha="left" if reverse else "right", va="top", fontsize=16,
-                 bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
+        
+        if info:
+            txt = {"en":f"{sum(emojis.values())} total\nemojis 😯",
+                   "it":f"{sum(emojis.values())} emoji\ntotali 😯"} # Text bubble w/ total number of emoji
+            plt.text(x=plt.xlim()[0]+1 if reverse else plt.xlim()[1]-1, y=plt.ylim()[1]*9/10, s=txt[self.lang], 
+                     ha="left" if reverse else "right", va="top", fontsize=16,
+                     bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
 
 
         emojis_to_size_dict = {1:28, 2:26, 3:24, 4:22, 5:21, 6:20, 7:18, 8:16, 9:14, 10:12} # Different sizes of unique emojis create different graphs
@@ -723,7 +733,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         
         plt.plot(x_pos, y_pos, color="#26d367") # Plotting
 
-        if interval != "year": # Plot running average
+        diff = pd.to_datetime(date.today())-self.df.date[0]
+        if ((interval == "month" and diff > timedelta(days=360)) or  # Plot running average if difference of dates
+            (interval == "week" and diff > timedelta(days=180)) or   # isn't too small (or else it's useless)
+            (interval == "day" and diff > timedelta(days=30))):
             plt.plot(x_pos, running_average, color="#075e55") # Changing format of dates to avoid overlapping
             if pd.to_datetime(x_pos[-1])-pd.to_datetime(x_pos[0]) < timedelta(days=365):
                 if pd.to_datetime(x_pos[-1])-pd.to_datetime(x_pos[0]) < timedelta(days=365//2):
@@ -793,10 +806,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if not self.prep():
             return
 
-        people = {k:len(self.df[self.df.who == k]) for k in set(self.df.who)} # Dict {person:number of messages}
+        people = {font_friendly(k):len(self.df[self.df.who == k]) for k in set(self.df.who)} # Dict {person:number of messages}
         if "info" in people.keys():
             people.pop("info")
-        people = sort_dict(people, 7, reverse=True)
+        people = sort_dict(people, 7, reverse=True, lang=self.lang)
         
         if self.group: # If group chat use barplot
             title = {"en":f"Most active people in {self.name}", 
@@ -887,7 +900,8 @@ def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages 
     pdf.add_message(cat="avg_response_time", pos="right")
 
 
-def seed2(pdf:PDF_Constructor): # Another possible combination (for private chats)
+def seed2(pdf:PDF_Constructor): # Another possible combination (Made exclusively for private chats)
+
     pdf.plot_emojis("left", who=pdf.name[0])
 
     pdf.plot_emojis("right", who=pdf.name[1], reverse=True)
@@ -899,17 +913,41 @@ def seed2(pdf:PDF_Constructor): # Another possible combination (for private chat
     pdf.plot_most_active_people("left")
 
 
+def seed3(pdf:PDF_Constructor):
+
+    pdf.plot_number_of_messages(interval="month", pos="left")
+
+    pdf.add_message(cat="most_active_month", pos="left")
+
+    pdf.plot_most_used_words(pos="left")
+
+    pdf.add_message(cat="avg_message_length", pos="left")
+
+    pdf.add_message(cat="avg_response_time", pos="left")
+
+    pdf.add_message(cat="most_active_person", pos="right")
+
+    pdf.plot_most_active_people(pos="right")
+
+    pdf.add_message(cat="first_texter", pos="right")
+
+    pdf.plot_emojis(pos="right")
+
+    pdf.add_message(cat="active_days", pos="right")
+
+    
+
 
 def main(file): 
     
-    pdf = PDF_Constructor(file, lang="it")
+    pdf = PDF_Constructor(file, lang="en")
 
-    seed1(pdf)
+    seed3(pdf)
 
     pdf.save()
 
 
 
 if __name__ == "__main__":
-    file = "text_files/Chat WhatsApp con Auar femili.txt"
+    file = "text_files/Chat WhatsApp con EXAMPLE.txt"
     main(file)
