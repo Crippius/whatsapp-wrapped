@@ -1,3 +1,7 @@
+# TODO: Add dynamic loading bar (use same library of wordle project)
+# TODO: create new seeds
+# TODO: Add error handler
+
 import pandas as pd # To store all the informations inside a Dataframe
 import matplotlib.pyplot as plt # To plot all the data in a meaningful way
 
@@ -36,7 +40,9 @@ CHAR_PER_LINE = 50
 LEFT_PLOT = 5 # Plot in left side of PDF
 RIGHT_PLOT = 5+WIDTH/2 # right side of PDF
 
-def font_friendly(txt): # DESCRIPTION: Change string by removing of all bad emojis that make the PDF look bad (LIST COULD BE UPDATED)
+def font_friendly(txt:str) -> str: # DESCRIPTION: Change string by removing of all bad emojis that make the PDF look bad (LIST COULD BE UPDATED)
+    # PARAMETERS: txt (str) = text that needs to be modified
+
     bad_emojis = ["️", "⃣", "🏽", "🏼", "🏾", "🏻", "🏿"]
     new_txt = ""
     for i in txt:
@@ -45,7 +51,10 @@ def font_friendly(txt): # DESCRIPTION: Change string by removing of all bad emoj
     
     return new_txt
 
-def IOS_or_Android(txt, regexs):
+def IOS_or_Android(txt:str, regexs:dict) -> str: 
+    # DESCRIPTION: Return from which device the file is from (Android or iPhone) by checking the text to some regexs
+    # PARAMETERS: txt (str) = text that gets checked 
+    # regexs (dict) = dictionary where the key is the device (Android/IOS) and values are some regexs used for each one 
 
     for regex in regexs["IOS"].values():
         if re.search(regex, txt) != None:
@@ -53,7 +62,7 @@ def IOS_or_Android(txt, regexs):
     for regex in regexs["Android"].values():
         if re.search(regex, txt) != None:
             return "Android"
-    print(txt)
+
     return "IDK"
 
 def get_data(file:str) -> list: # DESCRIPTION: extract the info inside the .txt file
@@ -210,39 +219,6 @@ def get_message_freq_dict(messages:pd.Series, blacklist:list=[]) -> dict: # DESC
     return most_used_words
 
 
-def get_swear_count(messages:pd.Series) -> int: # DESCRIPTION: count number of swears inside list of messages
-    # PARAMETERS: messages (Series): list of strings
-    # RETURNS: int (number of swears)
-
-    tot = 0
-    words_dict = get_message_freq_dict(messages)
-    swears = [i[:-1] for i in open("parolacce.txt", "r")]
-    for swear in swears:
-        if swear in words_dict.keys():
-            tot += words_dict[swear]
-    return tot
-
-
-def get_average_response_time(df:pd.DataFrame) -> str: # DESCRIPTION: Returns the average time in which someone responds to a message
-    # PARAMETERS: df (Dataframe): table from which the info is gained
-
-    resp_list = []
-    date_and_time = df.date+df.time
-
-    for i in range(1, len(df)): # Getting difference between the time of the messages
-        resp_list.append(date_and_time[i]-date_and_time[i-1])
-
-    first_quartile, last_quartile = len(df)//4, len(df)*3//4 # Getting the interquartile mean, since outliers could skew the average too much
-    iqr_mean = sum(resp_list[first_quartile:last_quartile], timedelta(0))/len(resp_list)/2
-
-    txt = f"{iqr_mean.days} giorni " if iqr_mean >= timedelta(days=1) else "" # Writing the message
-    txt += f"{iqr_mean.seconds//3600} ore " if iqr_mean >= timedelta(hours=1) else ""
-    txt += f"{(iqr_mean.seconds//60)%60} minuti " if iqr_mean >= timedelta(minutes=1) else ""
-    txt += "e " if len(txt) != 0 else ""
-    txt += f"{iqr_mean.seconds%60} secondi"
-    return txt
-    
-
 def concentrate_values(in_dict:dict, max_values:int, others:bool) -> dict: 
     # DESCRIPTION: make dictionary smaller by remvoing keys with smaller values
     # PARAMETERS: in_dict (dict) = dictionary that is going to be modified | max_values (int) = number of unique dict keys
@@ -298,63 +274,6 @@ def max_and_index(lst:list) -> tuple: # DESCRIPTION: returns the maximum value a
     return best, best_index
 
 
-def get_longest_active_streak(dates:list) -> tuple: # DESCRIPTION: returns the longest streak of days where the group was active
-    # PARAMETERS: dates (list): list of days in which a message was sent (only unique values are sent)
-    # RETURNS: the start of the streak and its end (datetime form) + integer which stores the longest streak
-
-    dates = sorted(dates)
-
-    start = dates[0]
-    end = dates[0]
-    best_streak = 0
-    curr_streak = 0
-
-    for i in range(1, len(dates)):
-        if dates[i]-dates[i-1] != timedelta(days=1): # If the gap between days isn't equal to a day, the streak ends, 
-            if curr_streak > best_streak:            # check if streak big enough to replace previous one, reset counter
-                best_streak = curr_streak
-                start = dates[i-1-curr_streak]
-                end = dates[i-1]
-            curr_streak = 0
-        else:
-            curr_streak += 1
-
-    return start, end, best_streak
-
-
-def get_longest_inactive_streak(dates:list): # DESCRIPTION: returns the longest streak of days where the group was inactive
-    # PARAMETERS: dates (list): list of days in which a message was sent
-    # RETURNS: the start of the streak and its end (datetime form) + integer which stores the longest streak
-
-    dates = sorted(dates)
-
-    start = "01/01/1900"
-    end = "01/01/1900"
-    best_streak = timedelta(days=1)
-    for i in range(1, len(dates)):
-        if dates[i]-dates[i-1] > best_streak: # If the gap between days is larger than the previous one
-            start = dates[i-1]                # replace it and reset counter
-            end = dates[i]
-            best_streak = dates[i]-dates[i-1]
-    return start, end, best_streak.days
-
-
-def get_first_texter(df): 
-    # DESCRIPTION: Get who is more prone to text first (by incrementing the value of the first person that writes in a day)
-    # (I know it's not totally correct, but using an unstable threshold like '2 hours between messages' seemed worse)
-    # PARAMETERS: df (Dataframe): from which the data is collected
-
-    people = {}
-    for i in range(1, len(df)):
-        if df.date[i] != df.date[i-1]:
-            who = df.who[i]
-            if who not in people:
-                people[who] = 0
-            people[who] += 1
-    people = sort_dict(people, 1, others=False)
-    return list(people.keys())[0]
-
-
 def check_text(txt:str): # DESCRIPTION: Checks how big the message bubble needs to be
     # PARAMETERS txt (str): text that is going to be checked
     # RETURNS: str (one, two, three), it depends on how big the message is
@@ -397,7 +316,7 @@ def transform_text(txt:str): # DESCRIPTION: Transform string of text to fit into
 
 class PDF_Constructor(FPDF): # Main class that is used in this program, inherits FPDF class, adding new functionalities
 
-    def __init__(self, file:str): 
+    def __init__(self, file:str, lang="en"): 
         # DESCRIPTION: Initialize class, with FPDF's initialization a dataframe is created and cleaned,
         # the group (or chatters) name and a counter are stored, Structure with basic info is built
         
@@ -407,9 +326,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         else:
             self.ok = 1
         
-        m = re.search("Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
-        self.name = font_friendly(m.group(1)) if m != None else ""
-        
+        self.lang = lang
+
+        m = re.search("text_files/Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
+        self.name = font_friendly(m.group(1)) if m != None else ""        
 
         if file.endswith(".zip"):
             with ZipFile(file, 'r') as zip_ref:
@@ -417,7 +337,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                 self.name = font_friendly(m.group(1)) if m != None else ""
                 zip_ref.extractall("text_files")
                 file = "text_files/_chat.txt"            
-                
+
         FPDF.__init__(self) 
 
         self.counter = 0
@@ -461,9 +381,12 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.cell(15, 0, "")
         self.set_text_color(255, 255, 255)  # Adding top part
         if self.group:
-            self.multi_cell(WIDTH-70, 0, transform_text(f'Analisi della chat {self.name}'))
+            txt = {"en":f"Analysis of {self.name} chat", "it":f"Analisi della chat {self.name}"}
+            self.multi_cell(WIDTH-70, 0, transform_text(txt[self.lang]))
         else:
-            self.multi_cell(WIDTH-70, 0, f'Analisi della chat tra {self.name[0]} e {self.name[1]}'[:CHAR_PER_LINE])
+            txt = {"en":f"Analysis of {self.name[0]} and {self.name[1]} chat"[:CHAR_PER_LINE], 
+                   "it":f"Analisi della chat tra {self.name[0]} e {self.name[1]}'[:CHAR_PER_LINE]"}
+            self.multi_cell(WIDTH-70, 0, txt[self.lang])
         self.set_text_color(0, 0, 0)
 
         x, y = self.get_x(), self.get_y()
@@ -471,9 +394,12 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.set_y(-20)
 
         self.image("images/writing_box.png", x=20, y=self.get_y()-4, w=WIDTH-40) # Adding footer
-        self.cell(30 , 0)
+        self.cell(30, 0)
         self.set_font_size(12)
-        self.multi_cell(0, 5, "Vuoi creare il wrapped di una tua chat? 🤨" + "\n" + "Vai su http://whatsapp_wrapped.it 👈", align="L", link="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        txt = {"en":"Do you want to create your own wrapped? 🤨\nThen try it @ http://whatsapp_wrapped.it 👈", 
+               "it":"Vuoi creare il wrapped di una tua chat? 🤨\nVai su http://whatsapp_wrapped.it 👈"}
+
+        self.multi_cell(0, 5, txt[self.lang], align="L", link="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
         
         self.set_xy(x, y)
 
@@ -514,8 +440,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                 
 
 
-    def add_message(self, type:str, pos:str) -> None: # DESCRIPTION: add simple info in a similar fashion to a whatsapp message
-        # PARAMETERS: type (str) = type of message to write, available types listed inside of if-else list
+    def add_message(self, cat:str, pos:str) -> None: # DESCRIPTION: add simple info in a similar fashion to a whatsapp message
+        # PARAMETERS: cat (str) = type of message to write, available types listed inside of if-else list
         # x, y (int) = coordinates inside of PDF file
 
         # Dictionaries don't work :(, the only alternative I could find were if-else conditons, even if ugly 
@@ -621,7 +547,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if len(emojis.keys()) == 0: # Adding a pair inside the empty dict to avoid crash
             emojis["🏼"] = 0
 
-        plt.title("Emoji più utilizzate:") # Plotting
+        title = {"en":"Most used Emojis:", "it":"Emoji più utilizzate:"}
+        plt.title(title[self.lang]) # Plotting
         plot = plt.bar(emojis.keys(), emojis.values(), color="#26d367")
         plt.xticks(fontsize=20)
         plt.text(x=plt.xlim()[0]+1 if reverse else plt.xlim()[1]-1, y=plt.ylim()[1]*9/10, s=f"{sum(emojis.values())} emoji\ntotali 😯", 
@@ -684,8 +611,11 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%y'))
             
         plt.grid(axis="y")
-        translator = {"day":"giorno", "week":"settimana", "month":"mese", "year":"anno"}
-        plt.title(f"Numero di messaggi per ogni {translator[interval]}:")
+        interval_dict = {"day":{"en":"day", "it":"giorno"}, "week":{"en":"week", "it":"settimana"}, 
+                        "month":{"en":"month", "it":"mese"}, "year":{"en":"year", "it":"anno"}}
+        title = {"en":f"Number of messages per {interval_dict[interval][self.lang]}",
+                 "it":f"Numero di messaggi per {interval_dict[interval][self.lang]}"}
+        plt.title(title[self.lang])
         
         plt.savefig(str(self.counter), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
@@ -697,12 +627,14 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if not self.prep():
             return
 
-        weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] # English (used in functions)
-        x_pos = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"] # Italian (displayed in plot)
-        y_pos = [len(self.df[self.df.date.dt.day_name() == i]) for i in weekday]
+        weekday = {"en":["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                   "it":["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]}
+        y_pos = [len(self.df[self.df.date.dt.day_name() == i]) for i in weekday["en"]]
 
-        spider_plot(x_pos, y_pos)
-        plt.title("Numero di messaggi per giorno della settimana:", pad=30)
+        spider_plot(weekday[self.lang], y_pos)
+        title = {"en":"Number of messages per weekday:",
+                 "it":"Numero di messaggi per giorno della settimana:"}
+        plt.title(title[self.lang], pad=30)
         plt.savefig(str(self.counter), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
                 
@@ -714,7 +646,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if not self.prep():
             return
         
-        blacklist = [i[:-1] for i in open("blacklist.txt", "r").readlines()] + ["è"] # Used to get rid of boring words (articles, prepositions...)
+        blacklist = [i[:-1] for i in open("lists/blacklist.txt", "r").readlines()] + ["è"] # Used to get rid of boring words (articles, prepositions...)
         most_used_words = get_message_freq_dict(self.df.message, blacklist=blacklist)
 
         if wordcloud: # Creating word cloud
@@ -727,7 +659,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         else:
             plt.bar(list(most_used_words.keys()), most_used_words.values(), color="#26d367")
         
-        plt.title("Parole più utilizzate:")
+        title = {"en":"Most used words:", 
+                 "it":"Parole più utilizzate:"}
+        plt.title(title[self.lang])
         plt.savefig(str(self.counter), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
     
@@ -744,13 +678,17 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         people = sort_dict(people, 7, reverse=True)
         
         if self.group: # If group chat use barplot
-            plt.title(f"Persone più attive in {self.name}:")
+            title = {"en":f"Most active people in {self.name}", 
+                     "it":f"Persone più attive in {self.name}:"}
+            plt.title(title[self.lang])
             set_to_font_size = {1:150, 2:45, 3:40, 4:35, 5:32, 6:25, 7:21, 8:18, 9:15, 10:14} # Different sizes of people create different graphs
             plot = plt.barh([str(i) for i in people.values()], people.values(), color="#26d367")
             add_labels_to_bar(plot, people.keys(), font_size=set_to_font_size[len(people)], dir="horizontal", pos="internal")
 
         else: # If private chat use pie plot
-            plt.title(f"Numero di messaggi inviati")
+            title = {"en":"Number of messages:", # Better title?
+                     "it":"Numero di messaggi inviati:"}
+            plt.title(title[self.lang])
             plt.pie(x=people.values(), labels=people.keys(), colors=("#26d367", "#128c7f"), textprops={"fontsize":14},
                     autopct=lambda x: f"{int(round((x/100)*sum(people.values()), 0))} messaggi\n({round(x, 2)}%)")
 
@@ -764,7 +702,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if not self.prep():
             return
 
-        plt.title("Numero di messaggio per periodo del giorno:")
+        title = {"en":"Number of messages per time of day:",
+                  "it":"Numero di messaggio per periodo del giorno:"}
+        plt.title(title[self.lang])
 
         x_pos = [timedelta(hours=i//2, minutes=30*(i%2)) for i in range(0, 48)]
         x_pos = x_pos[6:]+x_pos[:6] 
@@ -790,7 +730,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if not self.prep(plot=False):
             return
 
-        out = f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"
+        out = {"en":f"Analysis of {self.name if self.group else f'{self.name[0]} and {self.name[1]}'} chat.pdf",
+               "it":f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"}
+        out = out[self.lang]
         self.output(f'{out}')
         move(f'{out}', f'pdfs/{out}')
         while self.counter != 0:
@@ -805,27 +747,26 @@ def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages 
     
     pdf.plot_number_of_messages(interval="day", pos="left")
 
-    pdf.add_message(type="most_active_day", pos="left")
+    pdf.add_message(cat="most_active_day", pos="left")
 
     pdf.plot_emojis(pos="left")
 
     pdf.plot_most_active_people(pos="left")
 
-    pdf.add_message(type="message_count", pos="right")
+    pdf.add_message(cat="message_count", pos="right")
 
     pdf.plot_time_of_messages(pos="right")
 
-    pdf.add_message(type="longest_active_streak", pos="right")
+    pdf.add_message(cat="longest_active_streak", pos="right")
 
-    pdf.add_message(type="longest_inactive_streak", pos="right")
+    pdf.add_message(cat="longest_inactive_streak", pos="right")
 
     pdf.plot_most_used_words(pos="right", wordcloud=True)
 
-    pdf.add_message(type="avg_response_time", pos="right")
+    pdf.add_message(cat="avg_response_time", pos="right")
 
 
 def seed2(pdf:PDF_Constructor): # Another possible combination (for private chats)
-    
     pdf.plot_emojis("left", who=pdf.name[0])
 
     pdf.plot_emojis("right", who=pdf.name[1], reverse=True)
@@ -840,7 +781,7 @@ def seed2(pdf:PDF_Constructor): # Another possible combination (for private chat
 
 def main(file): 
     
-    pdf = PDF_Constructor(file)
+    pdf = PDF_Constructor(file, lang="it")
 
     seed1(pdf)
 
@@ -849,5 +790,5 @@ def main(file):
 
 
 if __name__ == "__main__":
-    file = "text_files/Chat Whatsapp con ESEMPIO.txt"
+    file = "text_files/Chat WhatsApp con Auar femili.txt"
     main(file)
