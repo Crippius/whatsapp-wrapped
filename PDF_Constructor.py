@@ -444,62 +444,183 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         # PARAMETERS: cat (str) = type of message to write, available types listed inside of if-else list
         # x, y (int) = coordinates inside of PDF file
 
-        # Dictionaries don't work :(, the only alternative I could find were if-else conditons, even if ugly 
-        # Most operations are difficult to read, but are really similar to the ones used in plot, check comments 
-        # inside those functions for explanation
-
         if not self.prep(plot=False):
             return
 
+        # I don't think this is the optimal solution for this find of problem, but it's the best path that I could think of
+        # Instead of a long series of if-else conditions or a (not working) dictionary, I decided to use a series of single-use functions
+        # The structure of this functions is: 1st) computations, 2nd) creating the text in the correct language
 
-        if type == "message_count":
-            aux = len(self.df) if len(self.df) < 39999 else '40000+'
-            txt = f"Sono stati mandati {aux} messaggi!\nVi scrivete un botto! 🤩"
-        elif type == "active_days":
-            aux = len(set(self.df.date))
-            txt = f"Vi siete scritti in {aux} giorni diversi! 🧐"
-        elif type == "messages_per_day":
-            aux = round(len(self.df)/len(pd.date_range(self.df.date[0], date.today())), 2)
-            txt = f"In media vi mandate {aux} messaggi al giorno 📱"
-        elif type == "file_count":
-            aux = len(self.df[self.df.message == '<Media omessi>'])
-            txt = f"Sono stati inviati {aux} file!"
-        elif type == "most_active_day":
-            aux = max([len(self.df[self.df.date == i]) for i in set(self.df.date)])
-            txt = f"Il giorno più attivo è stato il {self.df.loc[aux].date.strftime('%d/%m/%y')}\n{aux} messaggi in totale, che giornata 🤯"
-        elif type == "most_active_year":
-            aux1, aux2 = max_and_index([len(self.df[self.df.date.dt.year == i]) for i in set(self.df.date.dt.year)])
-            txt = f"Anno più attivo: {list(set(self.df.date.dt.year))[aux2]} ({aux1} messaggi)\nChe memorie 💭"
-        elif type == "most_active_month":
-            aux1, aux2 = max_and_index([len(self.df[self.df.date.dt.to_period('M').dt.to_timestamp() == i]) for i in set(self.df.date.dt.to_period('M').dt.to_timestamp())])
-            txt = f"Mese più attivo: 👇🏻\n{list(set(self.df.date.dt.to_period('M').dt.to_timestamp()))[aux2].strftime('%m/%y')} ({aux1} messaggi)"
-        elif type == "most_active_weekday":
-            aux1, aux2 = max_and_index([len(self.df[self.df.date.dt.day_name() == i]) for i in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]])
-            txt =  f'Giorno più attivo: {["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"][aux2]} ({aux1} messaggi)'
-        elif type == "most_active_person":
-            aux1, aux2 = list(sort_dict({k:len(self.df[self.df.who == k]) for k in set(self.df.who)}, 1, others=False).items())[0]
-            txt = f"{aux1} è la persona più attiva!\n Ha scritto {aux2} messaggi ({100*round(aux2/len(self.df), 2)} del totale) 🤙🏻"
-        elif type == "longest_active_streak":
-            aux1, aux2, aux3 = get_longest_active_streak(list(set(self.df.date)))
-            txt = f"Streak di giorni attivi più lunga: {aux3} giorni\nDal {aux1.strftime('%d/%m/%y')} al {aux2.strftime('%d/%m/%y')} ❤️"
-        elif type == "longest_inactive_streak":
-            aux1, aux2, aux3 = get_longest_inactive_streak(list(set(self.df.date)))
-            txt = f"Streak di giorni inattivi più lunga: {aux3} giorni\nDal {aux1.strftime('%d/%m/%y')} al {aux2.strftime('%d/%m/%y')} ☠️"
-        elif type == "first_texter":
-            aux = get_first_texter(self.df)
-            txt = f"Solitamente è {aux} che scrive per prim*... 🥇"
-        elif type == "avg_response_time":
-            aux = get_average_response_time(self.df)
-            txt = f"In media la risposta a un messaggio arriva:\n{aux} dopo 🏃"
-        elif type == "swear_count":
-            aux = get_swear_count(self.df.message)
-            txt = f"Sono state dette {aux} parolacce 🤬"
-        elif type == "avg_message_length":
-            aux = [len(word) for word in [message.split() for message in self.df.message]]
-            txt = f"Ci sono in media {round(sum(aux)/len(aux), 2)} parole in un messaggio 🔎"
+        def message_count(self): # Return number of messages sent in the history of the groupchat
+            num = len(self.df) if len(self.df) < 39999 else '40000+'
+
+            txt = {"en":f"{num} messages have been sent!\nYou chat so much 🤩", # Maybe this should be more dynamic...
+                   "it":f"Sono stati mandati {'num'} messaggi!\nVi scrivete un botto! 🤩"} # Especially with not-so-active chats...
+            return txt[self.lang]
+
+        def active_days(self): # Return the number of days the chat has been active
+            total = len(set(self.df.date))
+
+            txt = {"en":f"This group has benn active in {total} different days! 🧐",
+                   "it":f"Vi siete scritti in {total} giorni diversi! 🧐"}
+            return txt[self.lang]
+
+        def messages_per_day(self): # Return the number of messages sent every day on average
+            message_ratio = len(self.df)/len(pd.date_range(self.df.date[0], date.today())) # <- every day from the start of the groupchat
+            message_ratio = round(message_ratio, 2)
+
+            txt = {"en":f"You usually send {message_ratio} messages every day 📱",
+                   "it":f"In media vi mandate {message_ratio} messaggi al giorno 📱"}
+            return txt[self.lang]
+
+        def file_count(self): # Return the number of files sent
+            files = len(self.df[self.df.message == '<Media omessi>'])
+
+            txt = {"en":f"{files} files have been sent in this chatroom!",
+                   "it":f"Sono stati inviati {files} file!"}
+            return txt[self.lang]
+
+        def most_active_day(self): # Return the day people chatted the most + # of messages sent that day
+            num = max([len(self.df[self.df.date == i]) for i in set(self.df.date)])
+            day = self.df.loc[num].date.strftime('%d/%m/%y')
+
+            txt = {"en":f"The most active day has been {day}\n{num} total messages, incredible 🤯",
+                   "it":f"Il giorno più attivo è stato il {day}\n{num} messaggi in totale, che giornata 🤯"}
+            return txt[self.lang]
+
+        def most_active_year(self): # Return the year people chatted the most + # of messages sent that year
+            lst = [len(self.df[self.df.date.dt.year == i]) for i in set(self.df.date.dt.year)]
+            best, year = max_and_index(lst)
+            year = list(set(self.df.date.dt.year))[year]
+
+            txt = {"en":f"Most active year: {year} ({best} messaggi)\nThere were some great memories 💭",
+                   "it":f"Anno più attivo: {year} ({best} messaggi)\nChe memorie 💭"}
+            return txt[self.lang]
+
+        def most_active_month(self): # Return the month people chatted the most + # of messages sent that month
+            lst = [len(self.df[self.df.date.dt.to_period('M').dt.to_timestamp() == i]) for i in set(self.df.date.dt.to_period('M').dt.to_timestamp())]
+            best, month = max_and_index(lst)
+            month = list(set(self.df.date.dt.to_period('M').dt.to_timestamp()))[month].strftime('%m/%y')
+
+            txt = {"en":f"Most active month: 👇🏻\n{month} ({best} messaggi)",
+                   "it":f"Mese più attivo: 👇🏻\n{month} ({best} messaggi)"}
+            return txt[self.lang]
+
+        def most_active_weekday(self): # Return the weekday people chatted the most + # of messages sent that weekday
+            lst = [len(self.df[self.df.date.dt.day_name() == i]) for i in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]]
+            best, weekday = max_and_index(lst)
+
+            txt = {"en":f'Most active weekday: {["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"][weekday]} ({best} messaggi)',
+                   "it":f'Giorno più attivo: {["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"][weekday]} ({best} messaggi)'}
+            return txt[self.lang]
+        
+        def most_active_person(self): # Return the name of the most active person in the groupchat + # of messages + percent of total messages
+            people = {k:len(self.df[self.df.who == k]) for k in set(self.df.who)}
+            person, total = list(sort_dict(people, 1, others=False).items())[0]
+            percent = 100*round(total/len(self.df), 2)
+
+            txt = {"en":f"{person} is the most active person!\n They wrote {total} messages ({percent}% of the total) 🤙🏻",
+                   "it":f"{person} è la persona più attiva!\n Ha scritto {total} messaggi ({percent}% del totale) 🤙🏻"}
+            return txt[self.lang]
+        
+        def longest_active_streak(self): # Return the start and end dates of the longest streak of days where the chat has been active
+            dates = sorted(list(set(self.df.date)))
+            start = dates[0]
+            end = dates[0]
+            best_streak = 0
+            curr_streak = 0
+            for i in range(1, len(dates)):
+                if dates[i]-dates[i-1] != timedelta(days=1): # If the gap between days isn't equal to a day, the streak ends, 
+                    if curr_streak > best_streak:            # check if streak big enough to replace previous one, reset counter
+                        best_streak = curr_streak
+                        start = dates[i-1-curr_streak]
+                        end = dates[i-1]
+                    curr_streak = 0
+                else:
+                    curr_streak += 1
+            start, end = start.strftime('%d/%m/%y'), end.strftime('%d/%m/%y')
+
+            txt = {"en":f"Longest active streak: {best_streak} days\nFrom {start} to {end} ❤️",
+                   "it":f"Streak di giorni attivi più lunga: {best_streak} giorni\nDal {start} al {end} ❤️"}
+            return txt[self.lang]
+        
+        def longest_inactive_streak(self): # Return the start and end dates of the longest streak of days where the chat has been inactive
+            dates = sorted(list(set(self.df.date)))
+            start = "01/01/1900"
+            end = "01/01/1900"
+            best_streak = timedelta(days=1)
+            for i in range(1, len(dates)):
+                if dates[i]-dates[i-1] > best_streak: # If the gap between days is larger than the previous one
+                    start = dates[i-1]                # replace it and reset counter
+                    end = dates[i]
+                    best_streak = dates[i]-dates[i-1]
+            start, end, best_streak = start.strftime('%d/%m/%y'), end.strftime('%d/%m/%y'), best_streak.days
+
+            txt = {"en":f"Longest inactive streak: {best_streak} days\nFrom {start} to {end} ☠️",
+                   "it":f"Streak di giorni inattivi più lunga: {best_streak} giorni\nDal {start} al {end} ☠️"}
+            return txt[self.lang]
+        
+        def first_texter(self): # Return the name of the person who text first the most
+            people = {}
+            for i in range(1, len(self.df)):
+                if self.df.date[i] != self.df.date[i-1]: # If first message of the day...
+                    who = self.df.who[i]
+                    if who not in people:
+                        people[who] = 0
+                    people[who] += 1
+            people = sort_dict(people, 1, others=False)
+            person = list(people.keys())[0]
+            txt = {"en":f"It's usually {person} who writes first... 🥇", 
+                   "it":f"Solitamente è {person} che scrive per prim*... 🥇"}
+            return txt[self.lang]
+        
+        def avg_response_time(self): # Return the average time elapsed between a message is sent and a response arrives
+            resp_list = []
+            date_and_time = self.df.date+self.df.time
+            for i in range(1, len(self.df)): # Getting difference between the time of the messages
+                resp_list.append(date_and_time[i]-date_and_time[i-1])
+            first_quartile, last_quartile = len(self.df)//4, len(self.df)*3//4 # Getting the interquartile mean, since outliers could skew the average too much
+            iqr_mean = sum(resp_list[first_quartile:last_quartile], timedelta(0))/len(resp_list)/2
+            seconds, minutes, hours, days = (iqr_mean.seconds%60, iqr_mean >= timedelta(minutes=1), iqr_mean >= timedelta(hours=1), iqr_mean >= timedelta(days=1))
+
+            txt = {"en":f"On average a response to a message arrives:\n{f'{iqr_mean.days} days ' if days else ''}{f'{iqr_mean.seconds//3600} hours ' if hours else ''}"
+                       +f"{f'{(iqr_mean.seconds//60)%60} minutes ' if hours else ''}{f'{iqr_mean.seconds%60} seconds'} later 🏃",
+                   "it":f"In media un messaggio arriva:\n{f'{iqr_mean.days} giorni ' if days else ''}{f'{iqr_mean.seconds//3600} ore ' if hours else ''}"
+                       +f"{f'{(iqr_mean.seconds//60)%60} minuti ' if hours else ''}{f'{iqr_mean.seconds%60} secondi'} dopo 🏃"}
+            return txt[self.lang]
+
+        def swear_count(self): # Returns the total number of swears that have been written in the groupchat
+            tot = 0
+            words_dict = get_message_freq_dict(self.df.message)
+            swears = [i[:-1] for i in open("lists/parolacce.txt", "r")] # N.B only italian swears for now TODO: add english swears XD
+            for swear in swears:
+                if swear in words_dict.keys():
+                    tot += words_dict[swear]
+            
+            txt = {"en":f"{tot} swear words have been sent 🤬",
+                   "it":f"Sono state dette {txt} parolacce 🤬"}
+            return txt[self.lang]
+        
+        def avg_message_length(self): # Returns the average number of words in a message
+            lst = [len(word) for word in [message.split() for message in self.df.message]]
+            avg = round(sum(lst)/len(lst), 2)
+            
+            txt = {"en":f"On average there are {avg} words in a message 🔎",
+                   "it":f"Ci sono in media {avg} parole in un messaggio 🔎"}
+            return txt[self.lang]
+
+        # TODO: add # of vocals, images and stickers sent (for IOS users only) 
+            
+        possibilities = ["message_count", "active_days", "messages_per_day", "file_count", "most_active_day", "most_active_year", 
+                         "most_active_month", "most_active_weekday", "most_active_person", "longest_active_streak", 
+                         "longest_inactive_streak", "first_texter", "avg_response_time", "swear_count", "avg_message_length"]
+        
+        if cat in possibilities:
+            txt = eval(cat+"(self)") # Calling the function
         else:
-            txt = "Something went wrong :("
-
+            txt = {"en":"Something went wrong :(",
+                   "it":"Qualcosa è andato storto :("}
+            txt = txt[self.lang]
 
         self.set_font_size(11)
         txt_pos = {("right", "one"):GREEN_POS, ("right", "two"):GREEN_POS+1, ("right", "three"):GREEN_POS+1,
