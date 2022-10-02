@@ -63,9 +63,8 @@ def seed3(pdf:PDF_Constructor):
     pdf.add_message(cat="active_days", pos="right")
 
 
-
-if __name__ == "__main__":
-
+def main():
+    
     file = "text_files/Chat WhatsApp con ESEMPIO.txt"
 
     pdf = PDF_Constructor(file, lang="en")
@@ -73,3 +72,9 @@ if __name__ == "__main__":
     eval(f"seed{randint(1, 3)}(pdf)")
 
     pdf.save()
+
+if __name__ == "__main__":
+
+    main()
+
+

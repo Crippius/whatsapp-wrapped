@@ -3,6 +3,8 @@
 # TODO: Add error handler
 
 import pandas as pd # To store all the informations inside a Dataframe
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt # To plot all the data in a meaningful way
 
 from matplotlib.font_manager import FontProperties # To work with other fonts inside matplotlib
@@ -23,7 +25,7 @@ from wordcloud import WordCloud # To remove the images created
 
 # COLOR PALETTE USED:     #075e55 | #128c7f |  #26d367 | #dcf8c7 | #ece5dd 
 #                         seagreen|bluechill|whatsgreen|palegreen|platinum
-#                             ^    (bordef)       ^    (background)   ^                                                                    
+#                             ^    (border)       ^    (background)   ^                                                                    
 #                 top bar color      primary color, used for      used for white
 #                  + microphone         graphs and messages           messages
 
@@ -329,8 +331,17 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         
         self.lang = lang
 
-        m = re.search("text_files/Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
-        self.name = font_friendly(m.group(1)) if m != None else ""        
+
+
+        m = re.search("Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
+        if m != None:
+            self.name = font_friendly(m.group(1))
+        else:
+            m = re.search("Chat_WhatsApp_con_(.+?).txt", file)  
+            if m != None:   
+                self.name = font_friendly(m.group(1))
+            else:
+                self.name = ""
 
         if file.endswith(".zip"):
             with ZipFile(file, 'r') as zip_ref:
@@ -364,6 +375,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.pos = {"left":0, "right":0} # Variables that keep track where "the pointer" is at, for the left and right sides of the pdf
         self.last = {"left":None, "right":None} # They keep track of the last positioned object
 
+        self.load = (self.pos["left"]/HEIGHT * self.pos["right"]/HEIGHT) * 100 
+        #  Defining the progress of the construction of the pdf by getting the position of the pointers relative to the file'sheight 
+
         prop=FontProperties(fname='my_fonts/seguiemj.ttf') # Changing matplotib and fpdf font
         rcParams['font.family'] = prop.get_name()
         self.add_font('seguiemj', '', "my_fonts/seguiemj.ttf")
@@ -376,8 +390,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
 
         self.add_page()
 
-        self.image('images/background.png', x = 0, y = 0, w = WIDTH, h = HEIGHT)
-        self.image('images/top_level.png', x = 0, y = 0, w = WIDTH)
+        self.image('static/background.png', x = 0, y = 0, w = WIDTH, h = HEIGHT)
+        self.image('static/top_level.png', x = 0, y = 0, w = WIDTH)
 
         self.cell(15, 0, "")
         self.set_text_color(255, 255, 255)  # Adding top part
@@ -387,7 +401,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             self.multi_cell(WIDTH-70, 0, transform_text(txt[self.lang]))
         else:
             txt = {"en":f"Analysis of {self.name[0]} and {self.name[1]} chat"[:CHAR_PER_LINE], 
-                   "it":f"Analisi della chat tra {self.name[0]} e {self.name[1]}'[:CHAR_PER_LINE]"}
+                   "it":f"Analisi della chat tra {self.name[0]} e {self.name[1]}"[:CHAR_PER_LINE]}
             self.multi_cell(WIDTH-70, 0, txt[self.lang])
         self.set_text_color(0, 0, 0)
 
@@ -395,7 +409,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.set_auto_page_break(False)
         self.set_y(-20)
 
-        self.image("images/writing_box.png", x=20, y=self.get_y()-4, w=WIDTH-40) # Adding footer
+        self.image("static/writing_box.png", x=20, y=self.get_y()-4, w=WIDTH-40) # Adding footer
         self.cell(30, 0)
         self.set_font_size(12)
         txt = {"en":"Do you want to create your own wrapped? 🤨\nThen try it @ http://whatsapp_wrapped.it 👈", 
@@ -412,7 +426,6 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
 
     def add_image(self, x:int, y:int) -> None: # Adds image to pdf file, given x and y coordinates
         self.image(f"{self.counter}.png", x = x, y = y, w = WIDTH/2 - 5, h=PLOT_HEIGHT)
-
     
     def prep(self, plot:bool=True) -> bool: # DESCRIPTION: Does necessary preparations before starting function
         # PARAMETERS: plot (bool): updates counter and closes last plot before starting if True
@@ -438,6 +451,11 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         
         self.pos[pos] += obj_dict[(self.last[pos], obj)] # Updating y position of pointer
         self.last[pos] = obj
+
+        other = "left" if pos == "right" else "right"
+
+        tmp = 100*(((self.pos[pos]+obj_dict[(None, obj)])/HEIGHT)+(self.pos[other]/HEIGHT))
+        self.load = tmp if tmp < 100 else 99
         return self.pos[pos]
                 
 
@@ -454,10 +472,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         # The structure of this functions is: 1st) computations, 2nd) creating the text in the correct language
 
         def message_count(self): # Return number of messages sent in the history of the groupchat
-            num = len(self.df) if len(self.df) < 39999 else '40000+'
+            num = len(self.df) if len(self.df) < 39900 else '40000+'
 
             txt = {"en":f"{num} messages have been sent!\nYou chat so much 🤩", # Maybe this should be more dynamic...
-                   "it":f"Sono stati mandati {'num'} messaggi!\nVi scrivete un botto! 🤩"} # Especially with not-so-active chats...
+                   "it":f"Sono stati mandati {num} messaggi!\nVi scrivete un botto! 🤩"} # Especially with not-so-active chats...
             return txt[self.lang]
 
         def active_days(self): # Return the number of days the chat has been active
@@ -588,9 +606,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             seconds, minutes, hours, days = (iqr_mean.seconds%60, iqr_mean >= timedelta(minutes=1), iqr_mean >= timedelta(hours=1), iqr_mean >= timedelta(days=1))
 
             txt = {"en":f"On average a response to a message arrives:\n{f'{iqr_mean.days} days ' if days else ''}{f'{iqr_mean.seconds//3600} hours ' if hours else ''}"
-                       +f"{f'{(iqr_mean.seconds//60)%60} minutes ' if hours else ''}{f'{iqr_mean.seconds%60} seconds'} later 🏃",
+                       +f"{f'{(iqr_mean.seconds//60)%60} minutes ' if minutes else ''}{f'{iqr_mean.seconds%60} seconds'} later 🏃",
                    "it":f"In media un messaggio arriva:\n{f'{iqr_mean.days} giorni ' if days else ''}{f'{iqr_mean.seconds//3600} ore ' if hours else ''}"
-                       +f"{f'{(iqr_mean.seconds//60)%60} minuti ' if hours else ''}{f'{iqr_mean.seconds%60} secondi'} dopo 🏃"}
+                       +f"{f'{(iqr_mean.seconds//60)%60} minuti ' if minutes else ''}{f'{iqr_mean.seconds%60} secondi'} dopo 🏃"}
             return txt[self.lang]
 
         def swear_count(self): # Returns the total number of swears that have been written in the groupchat
@@ -636,7 +654,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
 
         y = self.update_y(pos, "message", check_text(txt))
    
-        self.image(name=f"images/{pos_to_color[pos]}_{check_text(txt)}line_bubble.png", # Putting bubble image
+        self.image(name=f"static/{pos_to_color[pos]}_{check_text(txt)}line_bubble.png", # Putting bubble image
                     x=txt_pos[(pos, check_text(txt))]-img_offset[pos], y=y-4, w=100)
 
         self.set_xy(txt_pos[(pos, check_text(txt))], y)
@@ -860,16 +878,28 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
     
     
-    def save(self) -> None: # DESCRIPTION: Save file if nothing has gone wrong, remove images created
+    def save(self) -> str: # DESCRIPTION: Save file if nothing has gone wrong, remove images created
         if not self.prep(plot=False):
             return
 
+        self.load = 100
         out = {"en":f"Analysis of {self.name if self.group else f'{self.name[0]} and {self.name[1]}'} chat.pdf",
                "it":f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"}
         out = out[self.lang]
-        self.output(f'{out}')
+        self.output(name=f'{out}')
         move(f'{out}', f'pdfs/{out}')
         while self.counter != 0:
             if path.exists(f"{self.counter}.png"):
                 remove(f"{self.counter}.png")
             self.counter -= 1
+        
+        possibilities = [f"Chat WhatsApp con {self.name if type(self.name) != tuple else self.name[0]}.txt",
+                         f"Chat WhatsApp_con_{self.name if type(self.name) != tuple else self.name[0]}.txt",
+                         f"WhatsApp Chat - {self.name if type(self.name) != tuple else self.name[0]}.zip",
+                         f"WhatsApp_Chat_-_{self.name if type(self.name) != tuple else self.name[0]}.zip",
+                         f"_chat.txt"]
+        for i in possibilities:
+            if path.exists(f"text_files/{i}"):
+                remove(f"text_files/{i}")
+        
+        return f'pdfs/{out}'
