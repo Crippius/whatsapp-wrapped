@@ -1,5 +1,5 @@
 emoji==1.7.0
-Flask==1.1.2
+Flask==2.2.2
 Flask_WTF==1.0.1
 fpdf==1.7.2
 fpdf2==2.5.5
