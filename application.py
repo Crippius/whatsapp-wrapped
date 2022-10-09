@@ -8,7 +8,9 @@ from os import path, remove # To move and REmove ( ;) ) files in their directori
 from PDF_Constructor import PDF_Constructor # My tool to create the pdf
 from seeds import * # All my manually created seeds for the pdf
 
-app = Flask(__name__)
+application = Flask(__name__)
+app = application
+
 app.config["SECRET_KEY"] = secret_key
 app.config["UPLOAD_FOLDER"] = "text_files/"
 
