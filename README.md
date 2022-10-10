@@ -1,5 +1,7 @@
 # whatsapp-wrapped
 
+![Example](https://imgur.com/tZYIfJb.png)
+
 ## Description
 This repositiìory contains the project I developed during the summmer of '22, in which I created a script 
 that takes an exported .txt file from a Whatsapp chat and
@@ -33,9 +35,3 @@ You can also get info about
 * Longest (in)active streak
 * Average response time
 * And much more!!! 
-
-### Check pdfs directory to see an example
-
-## What's Next?
-I would love to create a website in which everyone can get an interesting analysis of their chat history without much trouble,
-this is why I'm learning HTML/CSS/JS to create it! Hope everything goes to plan!
