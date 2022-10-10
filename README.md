@@ -3,7 +3,7 @@
 ![Example](https://imgur.com/tZYIfJb.png)
 
 ## Description
-This repositiìory contains the project I developed during the summmer of '22, in which I created a script 
+This repository contains the project I developed during the summmer of '22, in which I created a script 
 that takes an exported .txt file from a Whatsapp chat and
 outputs a PDF that explores lots of interesting information and data about its conversations through graphs
 and made-up messages.
