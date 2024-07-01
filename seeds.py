@@ -65,11 +65,11 @@ def seed3(pdf:PDF_Constructor):
 
 def main():
     
-    file = "text_files/Chat WhatsApp con ESEMPIO.txt"
+    file = "text_files/Chat WhatsApp con Matthew.txt"
 
-    pdf = PDF_Constructor(file, lang="en")
+    pdf = PDF_Constructor(file, lang="it")
 
-    eval(f"seed{randint(1, 3)}(pdf)")
+    eval(f"seed{1}(pdf)")
 
     pdf.save()
 

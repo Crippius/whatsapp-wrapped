@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 
 from config import secret_key # Key for submitting files (TOP SECRET)
 from os import path, remove # To move and REmove ( ;) ) files in their directories
+from os import getenv
 
 from PDF_Constructor import PDF_Constructor # My tool to create the pdf
 from seeds import * # All my manually created seeds for the pdf
@@ -11,7 +12,7 @@ from seeds import * # All my manually created seeds for the pdf
 application = Flask(__name__)
 app = application
 
-app.config["SECRET_KEY"] = secret_key
+app.config["SECRET_KEY"] = getenv("ww_secret_key")
 app.config["UPLOAD_FOLDER"] = "text_files/"
 
 file_loc = ""
