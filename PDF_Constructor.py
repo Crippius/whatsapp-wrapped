@@ -502,7 +502,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
 
         def most_active_day(self): # Return the day people chatted the most + # of messages sent that day
             num = max([len(self.df[self.df.date == i]) for i in set(self.df.date)])
-            day = self.df.loc[num].date.strftime('%d/%m/%y')
+            day = max(set(self.df.date), key=lambda d: len(self.df[self.df.date == d])).strftime('%d/%m/%y')
 
             txt = {"en":f"The most active day has been {day}\n{num} total messages, incredible 🤯",
                    "it":f"Il giorno più attivo è stato il {day}\n{num} messaggi in totale, che giornata 🤯"}
