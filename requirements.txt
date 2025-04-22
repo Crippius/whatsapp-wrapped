@@ -5,7 +5,7 @@ fpdf==1.7.2
 fpdf2==2.7.6
 matplotlib==3.8.2
 Werkzeug==2.3.7
-wordcloud==1.9.2
+wordcloud==1.9.3
 WTForms==3.0.1
 Pillow==10.1.0
 pandas==2.1.3
