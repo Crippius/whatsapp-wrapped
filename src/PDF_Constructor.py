@@ -347,8 +347,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             with ZipFile(file, 'r') as zip_ref:
                 m = re.search("WhatsApp Chat - (.+).zip", file)
                 self.name = font_friendly(m.group(1)) if m != None else ""
-                zip_ref.extractall("text_files")
-                file = "text_files/_chat.txt"            
+                zip_ref.extractall("tmp")
+                file = "tmp/_chat.txt"            
 
         FPDF.__init__(self) 
 
@@ -899,7 +899,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                          f"WhatsApp_Chat_-_{self.name if type(self.name) != tuple else self.name[0]}.zip",
                          f"_chat.txt"]
         for i in possibilities:
-            if path.exists(f"text_files/{i}"):
-                remove(f"text_files/{i}")
+            if path.exists(f"tmp/{i}"):
+                remove(f"tmp/{i}")
         
         return f'../pdfs/{out}'

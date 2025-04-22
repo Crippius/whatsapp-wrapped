@@ -21,7 +21,7 @@ application = Flask(__name__, template_folder="../templates", static_folder="../
 app = application
 
 app.config["SECRET_KEY"] = getenv("ww_secret_key")
-app.config["UPLOAD_FOLDER"] = "../text_files/"
+app.config["UPLOAD_FOLDER"] = "../tmp/"
 
 file_loc = ""
 pdf = ""
