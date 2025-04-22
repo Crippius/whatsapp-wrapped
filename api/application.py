@@ -1,12 +1,21 @@
 from flask import Flask, render_template, flash, send_from_directory, redirect, url_for, jsonify
-from flask_classes import UploadFileForm   # Libraries for the backend
+
 from werkzeug.utils import secure_filename
 
 from os import path, remove # To move and REmove ( ;) ) files in their directories
 from os import getenv
 
-from PDF_Constructor import PDF_Constructor # My tool to create the pdf
-from seeds import * # All my manually created seeds for the pdf
+import sys
+from pathlib import Path
+
+current_dir = Path(__file__).resolve().parent
+utilities_dir = current_dir.parent / 'src'
+
+sys.path.append(str(utilities_dir.parent))
+
+from src.flask_classes import UploadFileForm   # Libraries for the backend
+from src.PDF_Constructor import PDF_Constructor # My tool to create the pdf
+from src.seeds import * # All my manually created seeds for the pdf
 
 application = Flask(__name__, template_folder="../templates", static_folder="../static")
 app = application

@@ -2,7 +2,15 @@
 # obviously since 
 
 from random import randint
-from PDF_Constructor import PDF_Constructor
+
+import sys
+from pathlib import Path
+
+current_dir = Path(__file__).resolve().parent
+utilities_dir = current_dir.parent / 'src'
+sys.path.append(str(utilities_dir.parent))
+
+from src.PDF_Constructor import PDF_Constructor 
 
 def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages (for group chats)
     
