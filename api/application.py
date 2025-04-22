@@ -2,7 +2,6 @@ from flask import Flask, render_template, flash, send_from_directory, redirect, 
 from flask_classes import UploadFileForm   # Libraries for the backend
 from werkzeug.utils import secure_filename
 
-from config import secret_key # Key for submitting files (TOP SECRET)
 from os import path, remove # To move and REmove ( ;) ) files in their directories
 from os import getenv
 
