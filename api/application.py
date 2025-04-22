@@ -40,7 +40,7 @@ def index():
 
         file = form.file.data
         filename = " ".join(secure_filename(file.filename).split("_"))
-        loc = path.abspath(os.path.join(os.path.dirname(__file__), app.config['UPLOAD_FOLDER'], filename))
+        loc = path.abspath(path.join(path.dirname(__file__), app.config['UPLOAD_FOLDER'], filename))
         file.save(loc)
 
         file_loc = loc
