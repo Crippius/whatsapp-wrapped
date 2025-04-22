@@ -1,3 +1,16 @@
+# Python
+*.pyc
+*.pyo
+__pycache__/
+env/
+venv/
+*.egg-info/
+.dist/
+*.log
+*.pot
+*.pydevproject
+.vscode/
+
 pdfs/*
 text_files/*
 track_progress

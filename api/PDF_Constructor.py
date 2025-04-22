@@ -319,6 +319,8 @@ def transform_text(txt:str): # DESCRIPTION: Transform string of text to fit into
 
 class PDF_Constructor(FPDF): # Main class that is used in this program, inherits FPDF class, adding new functionalities
 
+    img_path = "../static/"
+    
     def __init__(self, file:str, lang="en"): 
         # DESCRIPTION: Initialize class, with FPDF's initialization a dataframe is created and cleaned,
         # the group (or chatters) name and a counter are stored, Structure with basic info is built
@@ -330,8 +332,6 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             self.ok = 1
         
         self.lang = lang
-
-
 
         m = re.search("Chat WhatsApp con (.+?).txt", file) # Catching name of group chat
         if m != None:
@@ -378,9 +378,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.load = (self.pos["left"]/HEIGHT * self.pos["right"]/HEIGHT) * 100 
         #  Defining the progress of the construction of the pdf by getting the position of the pointers relative to the file'sheight 
 
-        prop=FontProperties(fname='my_fonts/seguiemj.ttf') # Changing matplotib and fpdf font
+        prop=FontProperties(fname='../my_fonts/seguiemj.ttf') # Changing matplotib and fpdf font
         rcParams['font.family'] = prop.get_name()
-        self.add_font('seguiemj', '', "my_fonts/seguiemj.ttf")
+        self.add_font('seguiemj', '', "../my_fonts/seguiemj.ttf")
         self.set_font('seguiemj', '', 16)
 
         self.add_structure() # Adding the structure of the pdf
@@ -390,8 +390,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
 
         self.add_page()
 
-        self.image('static/background.png', x = 0, y = 0, w = WIDTH, h = HEIGHT)
-        self.image('static/top_level.png', x = 0, y = 0, w = WIDTH)
+        self.image(PDF_Constructor.img_path+'background.png', x = 0, y = 0, w = WIDTH, h = HEIGHT)
+        self.image(PDF_Constructor.img_path+'top_level.png', x = 0, y = 0, w = WIDTH)
 
         self.cell(15, 0, "")
         self.set_text_color(255, 255, 255)  # Adding top part
@@ -409,7 +409,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         self.set_auto_page_break(False)
         self.set_y(-20)
 
-        self.image("static/writing_box.png", x=20, y=self.get_y()-4, w=WIDTH-40) # Adding footer
+        self.image(PDF_Constructor.img_path+"writing_box.png", x=20, y=self.get_y()-4, w=WIDTH-40) # Adding footer
         self.cell(30, 0)
         self.set_font_size(12)
         txt = {"en":"Do you want to create your own wrapped? 🤨\nThen try it @ http://whatsapp_wrapped.it 👈", 
@@ -614,7 +614,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         def swear_count(self): # Returns the total number of swears that have been written in the groupchat
             tot = 0
             words_dict = get_message_freq_dict(self.df.message)
-            swears = [i[:-1] for i in open("lists/parolacce.txt", "r")] # N.B only italian swears for now TODO: add english swears XD
+            swears = [i[:-1] for i in open("../lists/parolacce.txt", "r")] # N.B only italian swears for now TODO: add english swears XD
             for swear in swears:
                 if swear in words_dict.keys():
                     tot += words_dict[swear]
@@ -654,7 +654,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
 
         y = self.update_y(pos, "message", check_text(txt))
    
-        self.image(name=f"static/{pos_to_color[pos]}_{check_text(txt)}line_bubble.png", # Putting bubble image
+        self.image(name=PDF_Constructor.img_path+f"{pos_to_color[pos]}_{check_text(txt)}line_bubble.png", # Putting bubble image
                     x=txt_pos[(pos, check_text(txt))]-img_offset[pos], y=y-4, w=100)
 
         self.set_xy(txt_pos[(pos, check_text(txt))], y)
@@ -798,7 +798,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         if not self.prep():
             return
         
-        blacklist = [i[:-1] for i in open("lists/blacklist.txt", "r").readlines()] + ["è"] # Used to get rid of boring words (articles, prepositions...)
+        blacklist = [i[:-1] for i in open("../lists/blacklist.txt", "r").readlines()] + ["è"] # Used to get rid of boring words (articles, prepositions...)
         most_used_words = get_message_freq_dict(self.df.message, blacklist=blacklist)
 
         if wordcloud: # Creating word cloud
@@ -887,7 +887,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                "it":f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"}
         out = out[self.lang]
         self.output(name=f'{out}')
-        move(f'{out}', f'pdfs/{out}')
+        move(f'{out}', f'../pdfs/{out}')
         while self.counter != 0:
             if path.exists(f"{self.counter}.png"):
                 remove(f"{self.counter}.png")
@@ -902,4 +902,4 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             if path.exists(f"text_files/{i}"):
                 remove(f"text_files/{i}")
         
-        return f'pdfs/{out}'
+        return f'../pdfs/{out}'

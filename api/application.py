@@ -9,11 +9,11 @@ from os import getenv
 from PDF_Constructor import PDF_Constructor # My tool to create the pdf
 from seeds import * # All my manually created seeds for the pdf
 
-application = Flask(__name__)
+application = Flask(__name__, template_folder="../templates", static_folder="../static")
 app = application
 
 app.config["SECRET_KEY"] = getenv("ww_secret_key")
-app.config["UPLOAD_FOLDER"] = "text_files/"
+app.config["UPLOAD_FOLDER"] = "../text_files/"
 
 file_loc = ""
 pdf = ""
@@ -56,7 +56,7 @@ def download():
         return redirect(url_for("index"))
 
 
-    directory, file = new_file.split("/")
+    directory, file = new_file.rsplit("/", 1)
     return send_from_directory(directory, file, as_attachment=True)
 
 
