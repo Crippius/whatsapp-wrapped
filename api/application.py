@@ -3,7 +3,7 @@ from flask import Flask, render_template, flash, send_from_directory, redirect, 
 from werkzeug.utils import secure_filename
 
 from os import path, remove # To move and REmove ( ;) ) files in their directories
-from os import getenv
+from os import getenv, makedirs
 
 import sys
 from pathlib import Path
@@ -23,10 +23,11 @@ app = application
 app.config["SECRET_KEY"] = getenv("ww_secret_key")
 
 if getenv('VERCEL') == '1':
-    app.config["UPLOAD_FOLDER"] = '../tmp/text_files/'
+    app.config["UPLOAD_FOLDER"] = '/tmp/text_files/'
 else:
-    app.config["UPLOAD_FOLDER"] = '../text_files/'
+    app.config["UPLOAD_FOLDER"] = path.abspath(path.join(path.dirname(__file__), '../text_files/'))
 
+makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 file_loc = ""
 pdf = ""
 
@@ -40,7 +41,8 @@ def index():
 
         file = form.file.data
         filename = " ".join(secure_filename(file.filename).split("_"))
-        loc = path.abspath(path.join(path.dirname(__file__), app.config['UPLOAD_FOLDER'], filename))
+        loc = path.join(app.config['UPLOAD_FOLDER'], filename)
+        print(loc)
         file.save(loc)
 
         file_loc = loc

@@ -318,13 +318,14 @@ def transform_text(txt:str): # DESCRIPTION: Transform string of text to fit into
 
 INPUT = ""
 OUTPUT = ""
+BASE_DIR = path.dirname(path.abspath(__file__))
 
 if getenv('VERCEL') == '1':
     INPUT = '/tmp/text_files/'
     OUTPUT = '/tmp/pdfs/'
 else:
-    INPUT = '/text_files/'
-    OUTPUT = '/pdfs/'
+    INPUT = path.abspath(path.join(BASE_DIR, '../text_files/'))
+    OUTPUT = path.abspath(path.join(BASE_DIR, '../pdfs/'))
 
 class PDF_Constructor(FPDF): # Main class that is used in this program, inherits FPDF class, adding new functionalities
 
@@ -350,14 +351,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             if m != None:   
                 self.name = font_friendly(m.group(1))
             else:
-                self.name = ""
-
-        if file.endswith(".zip"):
-            with ZipFile(file, 'r') as zip_ref:
-                m = re.search("WhatsApp Chat - (.+).zip", file)
-                self.name = font_friendly(m.group(1)) if m != None else ""
-                zip_ref.extractall(INPUT)
-                file = f"{INPUT}/_chat.txt"            
+                self.name = ""        
 
         FPDF.__init__(self) 
 
@@ -896,7 +890,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                "it":f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"}
         out = out[self.lang]
         self.output(name=f'{out}')
-        move(f'{out}', f'../{OUTPUT}/{out}')
+        move(f'{out}', f'{OUTPUT}/{out}')
         while self.counter != 0:
             if path.exists(f"{self.counter}.png"):
                 remove(f"{self.counter}.png")
@@ -908,7 +902,9 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                          f"WhatsApp_Chat_-_{self.name if type(self.name) != tuple else self.name[0]}.zip",
                          f"_chat.txt"]
         for i in possibilities:
-            if path.exists(f"{INPUT}/{i}"):
-                remove(f"{INPUT}/{i}")
+            file_path = path.join(INPUT, i)
+            if path.exists(file_path):
+                remove(file_path)
+
         
-        return f'../{OUTPUT}/{out}'
+        return f'{OUTPUT}/{out}'
