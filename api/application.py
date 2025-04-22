@@ -21,7 +21,11 @@ application = Flask(__name__, template_folder="../templates", static_folder="../
 app = application
 
 app.config["SECRET_KEY"] = getenv("ww_secret_key")
-app.config["UPLOAD_FOLDER"] = "../tmp/"
+
+if getenv('VERCEL') == '1':
+    app.config["UPLOAD_FOLDER"] = '../tmp/text_files/'
+else:
+    app.config["UPLOAD_FOLDER"] = '../text_files/'
 
 file_loc = ""
 pdf = ""

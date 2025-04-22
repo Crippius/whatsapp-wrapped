@@ -18,7 +18,7 @@ from emoji import EMOJI_DATA # To validate if a character is an emoji or not
 from string import punctuation # To remove all the punctuation in a message
 from datetime import date, timedelta # To manipulate the dates we
 from shutil import move # To move the pdf inside the correct directory
-from os import remove, path # To remove the images created
+from os import remove, path, getenv # To remove the images created
 from zipfile import ZipFile # To unzip a zip file
 from math import pi # To use polar coordinates in spider plot
 from wordcloud import WordCloud # To remove the images created 
@@ -316,6 +316,15 @@ def transform_text(txt:str): # DESCRIPTION: Transform string of text to fit into
     return new_txt
     
 
+INPUT = ""
+OUTPUT = ""
+
+if getenv('VERCEL') == '1':
+    INPUT = '/tmp/text_files/'
+    OUTPUT = '/tmp/pdfs/'
+else:
+    INPUT = '/text_files/'
+    OUTPUT = '/pdfs/'
 
 class PDF_Constructor(FPDF): # Main class that is used in this program, inherits FPDF class, adding new functionalities
 
@@ -347,8 +356,8 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             with ZipFile(file, 'r') as zip_ref:
                 m = re.search("WhatsApp Chat - (.+).zip", file)
                 self.name = font_friendly(m.group(1)) if m != None else ""
-                zip_ref.extractall("tmp")
-                file = "tmp/_chat.txt"            
+                zip_ref.extractall(INPUT)
+                file = f"{INPUT}/_chat.txt"            
 
         FPDF.__init__(self) 
 
@@ -887,7 +896,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                "it":f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"}
         out = out[self.lang]
         self.output(name=f'{out}')
-        move(f'{out}', f'../pdfs/{out}')
+        move(f'{out}', f'../{OUTPUT}/{out}')
         while self.counter != 0:
             if path.exists(f"{self.counter}.png"):
                 remove(f"{self.counter}.png")
@@ -899,7 +908,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                          f"WhatsApp_Chat_-_{self.name if type(self.name) != tuple else self.name[0]}.zip",
                          f"_chat.txt"]
         for i in possibilities:
-            if path.exists(f"tmp/{i}"):
-                remove(f"tmp/{i}")
+            if path.exists(f"{INPUT}/{i}"):
+                remove(f"{INPUT}/{i}")
         
-        return f'../pdfs/{out}'
+        return f'../{OUTPUT}/{out}'
