@@ -428,7 +428,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
     
 
     def add_image(self, x:int, y:int) -> None: # Adds image to pdf file, given x and y coordinates
-        self.image(f"{self.counter}.png", x = x, y = y, w = WIDTH/2 - 5, h=PLOT_HEIGHT)
+        self.image(path.join(OUTPUT, f"{self.counter}.png"), x = x, y = y, w = WIDTH/2 - 5, h=PLOT_HEIGHT)
     
     def prep(self, plot:bool=True) -> bool: # DESCRIPTION: Does necessary preparations before starting function
         # PARAMETERS: plot (bool): updates counter and closes last plot before starting if True
@@ -711,7 +711,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         emojis_to_size_dict = {1:28, 2:26, 3:24, 4:22, 5:21, 6:20, 7:18, 8:16, 9:14, 10:12} # Different sizes of unique emojis create different graphs
         add_labels_to_bar(plot, emojis.values(), font_size=emojis_to_size_dict[len(emojis)], dir="vertical")
 
-        plt.savefig(str(self.counter), transparent=True)
+        plt.savefig(path.join(OUTPUT,str(self.counter)), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
 
@@ -772,7 +772,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
                  "it":f"Numero di messaggi per {interval_dict[interval][self.lang]}"}
         plt.title(title[self.lang])
         
-        plt.savefig(str(self.counter), transparent=True)
+        plt.savefig(path.join(OUTPUT, str(self.counter)), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
     
 
@@ -790,7 +790,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         title = {"en":"Number of messages per weekday:",
                  "it":"Numero di messaggi per giorno della settimana:"}
         plt.title(title[self.lang], pad=30)
-        plt.savefig(str(self.counter), transparent=True)
+        plt.savefig(path.join(OUTPUT, str(self.counter)), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
                 
     
@@ -817,7 +817,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         title = {"en":"Most used words:", 
                  "it":"Parole più utilizzate:"}
         plt.title(title[self.lang])
-        plt.savefig(str(self.counter), transparent=True)
+        plt.savefig(path.join(OUTPUT, str(self.counter)), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
     
 
@@ -847,7 +847,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             plt.pie(x=people.values(), labels=people.keys(), colors=("#26d367", "#128c7f"), textprops={"fontsize":14},
                     autopct=lambda x: f"{int(round((x/100)*sum(people.values()), 0))} messaggi\n({round(x, 2)}%)")
 
-        plt.savefig(str(self.counter), transparent=True)
+        plt.savefig(path.join(OUTPUT, str(self.counter)), transparent=True)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
 
@@ -876,7 +876,7 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         x_pos = [x_pos[i] if not i%N else "" for i in range(len(x_pos))]
         plt.xticks(x_pos)
         
-        plt.savefig(str(self.counter), transparent=True)
+        plt.savefig(path.join(OUTPUT, str(self.counter)), transparent=True)
 
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
     
@@ -889,11 +889,10 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         out = {"en":f"Analysis of {self.name if self.group else f'{self.name[0]} and {self.name[1]}'} chat.pdf",
                "it":f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"}
         out = out[self.lang]
-        self.output(name=f'{out}')
-        move(f'{out}', path.join(OUTPUT, out))
+        self.output(path.join(OUTPUT, out), "F") # Saving pdf file
         while self.counter != 0:
-            if path.exists(f"{self.counter}.png"):
-                remove(f"{self.counter}.png")
+            if path.exists(path.join(OUTPUT, f"{self.counter}.png")):
+                remove(path.join(OUTPUT, f"{self.counter}.png"))
             self.counter -= 1
         
         possibilities = [
@@ -907,5 +906,4 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             if path.exists(file_path):
                 remove(file_path)
 
-        
         return path.join(OUTPUT, out)
