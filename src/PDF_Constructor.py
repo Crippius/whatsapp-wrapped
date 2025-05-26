@@ -7,6 +7,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt # To plot all the data in a meaningful way
 
+
+
 from matplotlib.font_manager import FontProperties # To work with other fonts inside matplotlib
 import matplotlib.dates as mdates # To use different dates format in matplotlib 
 from matplotlib import rcParams # To change the font used by matplotliv
