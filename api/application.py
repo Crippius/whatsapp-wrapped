@@ -22,12 +22,18 @@ app = application
 
 app.config["SECRET_KEY"] = getenv("ww_secret_key")
 
+# Set up directories for both Vercel and local environments
 if getenv('VERCEL') == '1':
     app.config["UPLOAD_FOLDER"] = '/tmp/text_files/'
+    app.config["PDF_FOLDER"] = '/tmp/pdfs/'
 else:
     app.config["UPLOAD_FOLDER"] = path.abspath(path.join(path.dirname(__file__), '../text_files/'))
+    app.config["PDF_FOLDER"] = path.abspath(path.join(path.dirname(__file__), '../pdfs/'))
 
+# Create necessary directories
 makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+makedirs(app.config["PDF_FOLDER"], exist_ok=True)
+
 file_loc = ""
 pdf = ""
 
@@ -38,15 +44,11 @@ def index():
 
     form = UploadFileForm()
     if form.validate_on_submit():
-
         file = form.file.data
         filename = " ".join(secure_filename(file.filename).split("_"))
         loc = path.join(app.config['UPLOAD_FOLDER'], filename)
-        print(loc)
         file.save(loc)
-
         file_loc = loc
-
         return redirect(url_for("download"))
 
     if form.errors != {}:
@@ -61,18 +63,30 @@ def download():
     global pdf
 
     try:
+        if not file_loc:
+            flash("No file was uploaded", "danger")
+            return redirect(url_for("index"))
+
         file = file_loc
         pdf = PDF_Constructor(file, lang="en")
         seed1(pdf)
         new_file = pdf.save()
-    except Exception as e: # TODO: Add errors
-        flash(f"C'è stato un errore durante l'analisi del file: {e}", "danger")
+        
+        # Clean up the uploaded file
+        if path.exists(file):
+            remove(file)
+
+        # Send the PDF file
+        directory = path.dirname(new_file)
+        filename = path.basename(new_file)
+        return send_from_directory(directory, filename, as_attachment=True)
+
+    except Exception as e:
+        flash(f"An error occurred during file analysis: {str(e)}", "danger")
+        # Clean up any temporary files
+        if path.exists(file_loc):
+            remove(file_loc)
         return redirect(url_for("index"))
-
-
-    directory, file = new_file.rsplit("/", 1)
-    return send_from_directory(directory, file, as_attachment=True)
-
 
 @app.route("/faq")
 def faq():
@@ -81,19 +95,18 @@ def faq():
 @app.route("/data")
 def data():
     global pdf
-    info = {"Name":"",
-            "Language":"",
-            "Loading":""}
+    info = {
+        "Name": "",
+        "Language": "",
+        "Loading": ""
+    }
 
-    if type(pdf) == PDF_Constructor:
-        
+    if isinstance(pdf, PDF_Constructor):
         info["Name"] = pdf.name
         info["Language"] = pdf.lang
         info["Loading"] = pdf.load
     
     return jsonify(info)
-
-
 
 if __name__ == "__main__":
     app.run()

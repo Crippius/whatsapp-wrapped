@@ -18,7 +18,7 @@ from emoji import EMOJI_DATA # To validate if a character is an emoji or not
 from string import punctuation # To remove all the punctuation in a message
 from datetime import date, timedelta # To manipulate the dates we
 from shutil import move # To move the pdf inside the correct directory
-from os import remove, path, getenv # To remove the images created
+from os import remove, path, getenv, makedirs # To remove the images created
 from zipfile import ZipFile # To unzip a zip file
 from math import pi # To use polar coordinates in spider plot
 from wordcloud import WordCloud # To remove the images created 
@@ -326,6 +326,10 @@ if getenv('VERCEL') == '1':
 else:
     INPUT = path.abspath(path.join(BASE_DIR, '../text_files/'))
     OUTPUT = path.abspath(path.join(BASE_DIR, '../pdfs/'))
+
+# Create necessary directories
+makedirs(INPUT, exist_ok=True)
+makedirs(OUTPUT, exist_ok=True)
 
 class PDF_Constructor(FPDF): # Main class that is used in this program, inherits FPDF class, adding new functionalities
 
@@ -889,12 +893,21 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
         out = {"en":f"Analysis of {self.name if self.group else f'{self.name[0]} and {self.name[1]}'} chat.pdf",
                "it":f"Analisi della chat {self.name if self.group else f'tra {self.name[0]} e {self.name[1]}'}.pdf"}
         out = out[self.lang]
-        self.output(path.join(OUTPUT, out), "F") # Saving pdf file
+        
+        # Ensure output directory exists
+        makedirs(OUTPUT, exist_ok=True)
+        
+        output_path = path.join(OUTPUT, out)
+        self.output(output_path, "F")  # Saving pdf file
+        
+        # Clean up temporary image files
         while self.counter != 0:
-            if path.exists(path.join(OUTPUT, f"{self.counter}.png")):
-                remove(path.join(OUTPUT, f"{self.counter}.png"))
+            img_path = path.join(OUTPUT, f"{self.counter}.png")
+            if path.exists(img_path):
+                remove(img_path)
             self.counter -= 1
         
+        # Clean up input files
         possibilities = [
             path.join(INPUT, f"Chat WhatsApp con {self.name if type(self.name) != tuple else self.name[0]}.txt"),
             path.join(INPUT, f"Chat WhatsApp_con_{self.name if type(self.name) != tuple else self.name[0]}.txt"),
@@ -906,4 +919,4 @@ class PDF_Constructor(FPDF): # Main class that is used in this program, inherits
             if path.exists(file_path):
                 remove(file_path)
 
-        return path.join(OUTPUT, out)
+        return output_path
