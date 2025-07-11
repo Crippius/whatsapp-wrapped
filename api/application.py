@@ -14,7 +14,7 @@ utilities_dir = current_dir.parent / 'src'
 sys.path.append(str(utilities_dir.parent))
 
 from src.flask_classes import UploadFileForm   # Libraries for the backend
-from src.PDF_Constructor import PDF_Constructor # My tool to create the pdf
+from src.pdf.constructor import PDF_Constructor # Updated import for PDF_Constructor
 from src.seeds import * # All my manually created seeds for the pdf
 
 application = Flask(__name__, template_folder="../templates", static_folder="../static")
@@ -62,31 +62,24 @@ def download():
     global file_loc
     global pdf
 
-    try:
-        if not file_loc:
-            flash("No file was uploaded", "danger")
-            return redirect(url_for("index"))
 
-        file = file_loc
-        pdf = PDF_Constructor(file, lang="en")
-        seed1(pdf)
-        new_file = pdf.save()
-        
-        # Clean up the uploaded file
-        if path.exists(file):
-            remove(file)
-
-        # Send the PDF file
-        directory = path.dirname(new_file)
-        filename = path.basename(new_file)
-        return send_from_directory(directory, filename, as_attachment=True)
-
-    except Exception as e:
-        flash(f"An error occurred during file analysis: {str(e)}", "danger")
-        # Clean up any temporary files
-        if path.exists(file_loc):
-            remove(file_loc)
+    if not file_loc:
+        flash("No file was uploaded", "danger")
         return redirect(url_for("index"))
+
+    file = file_loc
+    pdf = PDF_Constructor(file, lang="en")
+    seed1(pdf)
+    new_file = pdf.save()
+        
+    if path.exists(file):
+        remove(file)
+
+    directory = path.dirname(new_file)
+    filename = path.basename(new_file)
+    return send_from_directory(directory, filename, as_attachment=True)
+
+
 
 @app.route("/faq")
 def faq():

@@ -10,51 +10,51 @@ current_dir = Path(__file__).resolve().parent
 utilities_dir = current_dir.parent / 'src'
 sys.path.append(str(utilities_dir.parent))
 
-from src.PDF_Constructor import PDF_Constructor 
+from src.pdf.constructor import PDF_Constructor 
 
 def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages (for group chats)
     
-    pdf.plot_number_of_messages(interval="day", pos="left")
+    pdf.add_number_of_messages_plot(interval="day", pos="left")
 
     pdf.add_message(cat="most_active_day", pos="left")
 
-    pdf.plot_emojis(pos="left")
+    pdf.add_emoji_plot(pos="left")
 
-    pdf.plot_most_active_people(pos="left")
+    pdf.add_most_active_people_plot(pos="left")
 
     pdf.add_message(cat="message_count", pos="right")
 
-    pdf.plot_time_of_messages(pos="right")
+    pdf.add_time_of_messages_plot(pos="right")
 
     pdf.add_message(cat="longest_active_streak", pos="right")
 
     pdf.add_message(cat="longest_inactive_streak", pos="right")
 
-    pdf.plot_most_used_words(pos="right", wordcloud=True)
+    pdf.add_most_used_words_plot(pos="right", wordcloud=True)
 
     pdf.add_message(cat="avg_response_time", pos="right")
 
 
 def seed2(pdf:PDF_Constructor): # Another possible combination (Made exclusively for private chats)
 
-    pdf.plot_emojis("left", who=pdf.name[0])
+    pdf.add_emoji_plot("left", who=pdf.name[0])
 
-    pdf.plot_emojis("right", who=pdf.name[1], reverse=True)
+    pdf.add_emoji_plot("right", who=pdf.name[1], reverse=True)
 
-    pdf.plot_number_of_messages("left")
+    pdf.add_number_of_messages_plot("left")
 
-    pdf.plot_time_of_messages("right")
+    pdf.add_time_of_messages_plot("right")
 
-    pdf.plot_most_active_people("left")
+    pdf.add_most_active_people_plot("left")
 
 
 def seed3(pdf:PDF_Constructor):
 
-    pdf.plot_number_of_messages(interval="month", pos="left")
+    pdf.add_number_of_messages_plot(interval="month", pos="left")
 
     pdf.add_message(cat="most_active_month", pos="left")
 
-    pdf.plot_most_used_words(pos="left")
+    pdf.add_most_used_words_plot(pos="left")
 
     pdf.add_message(cat="avg_message_length", pos="left")
 
@@ -62,18 +62,18 @@ def seed3(pdf:PDF_Constructor):
 
     pdf.add_message(cat="most_active_person", pos="right")
 
-    pdf.plot_most_active_people(pos="right")
+    pdf.add_most_active_people_plot(pos="right")
 
     pdf.add_message(cat="first_texter", pos="right")
 
-    pdf.plot_emojis(pos="right")
+    pdf.add_emoji_plot(pos="right")
 
     pdf.add_message(cat="active_days", pos="right")
 
 
 def main():
     
-    file = "text_files/Chat WhatsApp con Matthew.txt"
+    file = "../text_files/Chat WhatsApp con ESEMPIO.txt"
 
     pdf = PDF_Constructor(file, lang="it")
 
