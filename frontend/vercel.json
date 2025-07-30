@@ -4,7 +4,10 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/pages/$1" },
-    { "source": "/", "destination": "/pages/index.html" }
-  ]
+    { "source": "/", "destination": "/pages/index.html" },
+    { "source": "/(.*)", "destination": "/pages/$1" }
+  ],
+  "env": {
+    "BACKEND_URL": "https://your-backend-name.onrender.com"
+  }
 }

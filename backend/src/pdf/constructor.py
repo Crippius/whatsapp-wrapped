@@ -24,12 +24,13 @@ CHAR_PER_LINE = 50
 
 BASE_DIR = path.dirname(path.abspath(__file__))
 
-if getenv('VERCEL') == '1':
+# Configure paths based on environment
+if getenv('RENDER') == '1':
     INPUT = '/tmp/text_files/'
     OUTPUT = '/tmp/pdfs/'
 else:
-    INPUT = path.abspath(path.join(BASE_DIR, '../../text_files/'))
-    OUTPUT = path.abspath(path.join(BASE_DIR, '../../pdfs/'))
+    INPUT = path.abspath(path.join(BASE_DIR, '../../../text_files/'))
+    OUTPUT = path.abspath(path.join(BASE_DIR, '../../../pdfs/'))
 
 makedirs(INPUT, exist_ok=True)
 makedirs(OUTPUT, exist_ok=True)
@@ -109,10 +110,12 @@ class PDF_Constructor(FPDF):
         self.image(path.join(PDF_Constructor.img_path, "writing_box.png"), x=20, y=self.get_y()-4, w=WIDTH-40)
         self.cell(30, 0)
         self.set_font_size(12)
-        txt = {"en": "Do you want to create your own wrapped? 🤨\nThen try it @ http://whatsapp-wrapped-delta.vercel.app 👈",
-               "it": "Vuoi creare il wrapped di una tua chat? 🤨\nVai su http://whatsapp-wrapped-delta.vercel.app 👈"}
+        # Get the website URL from environment or use default
+        website_url = getenv('WEBSITE_URL', 'https://whatsapp-wrapped.vercel.app')
+        txt = {"en": f"Do you want to create your own wrapped? 🤨\nThen try it @ {website_url} 👈",
+               "it": f"Vuoi creare il wrapped di una tua chat? 🤨\nVai su {website_url} 👈"}
         self.multi_cell(0, 5, txt[self.lang], align="L")
-        self.cell(0, 5, link="http://whatsapp-wrapped-delta.vercel.app")
+        self.cell(0, 5, link=website_url)
         self.set_xy(x, y)
 
     def update_counter(self):
