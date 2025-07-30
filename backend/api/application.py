@@ -14,26 +14,14 @@ import uuid
 app = Flask(__name__)
 
 # Configure CORS based on environment
-if os.getenv('FLASK_ENV') == 'production':
-    # In production, allow requests from your Vercel frontend
-    CORS(app, resources={
-        r"/*": {
-            "origins": ["https://whatsapp-wrapped-delta.vercel.app"],
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type"],
-            "expose_headers": ["Content-Disposition"]
-        }
-    })
-else:
-    # In development, allow requests from localhost
-    CORS(app, resources={
-        r"/*": {
-            "origins": ["http://localhost:8080"],
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type"],
-            "expose_headers": ["Content-Disposition"]
-        }
-    })
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://whatsapp-wrapped-delta.vercel.app", "http://localhost:8080"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "expose_headers": ["Content-Disposition", "Content-Type"]
+    }
+})
 
 # Configure temporary directories
 TEMP_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'temp')
@@ -75,12 +63,10 @@ def generate():
         ))
         
         # Add CORS headers
-        origin = request.headers.get('Origin')
-        if origin in ['https://whatsapp-wrapped-delta.vercel.app', 'http://localhost:8080']:
-            response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Type'
         
         return response
         

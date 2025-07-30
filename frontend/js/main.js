@@ -30,8 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`${API_URL}/generate`, {
         method: 'POST',
         body: formData,
-        mode: 'cors',
-        credentials: 'include'
+        mode: 'cors'
       });
 
       console.log('Response received:', response);
