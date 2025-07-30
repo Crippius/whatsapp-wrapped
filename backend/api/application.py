@@ -8,13 +8,14 @@ import threading
 import time
 from flask import Flask, request, send_file, jsonify, make_response
 from flask_cors import CORS
-from src.pdf.constructor import PDF_Constructor
 import uuid
-from src.seeds import *
 
 backend_dir = str(Path(__file__).parent.parent)
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
+
+from src.pdf.constructor import PDF_Constructor
+from src.seeds import *
 
 app = Flask(__name__)
 
