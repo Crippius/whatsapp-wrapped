@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('chatForm');
   const submitBtn = form.querySelector('button[type="submit"]');
   const statusDiv = document.getElementById('status');
+  const loadingDiv = document.getElementById('loading');
+  let progressInterval = null;
+  let currentRequestId = null;
 
   // Check backend health on page load
   checkBackendHealth();
@@ -37,6 +40,116 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function pollProgress(requestId) {
+    if (!requestId) {
+      console.error('No request ID provided for progress polling');
+      return;
+    }
+
+    try {
+      console.log(`Polling progress for request ${requestId}...`);
+      const response = await fetch(`${API_URL}/progress/${requestId}`, {
+        method: 'GET',
+        mode: 'cors'
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('Progress data not found - request might be completed');
+          clearInterval(progressInterval);
+          progressInterval = null;
+          return;
+        }
+        throw new Error(`Failed to fetch progress: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Progress update:', data);
+
+      // Update progress display
+      updateProgressDisplay(data);
+
+      // When complete, download the PDF
+      if (data.status === 'completed') {
+        console.log('PDF generation complete, downloading...');
+        clearInterval(progressInterval);
+        progressInterval = null;
+        
+        // Download the PDF
+        const pdfResponse = await fetch(`${API_URL}/download/${requestId}`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+        
+        if (!pdfResponse.ok) {
+          throw new Error('Failed to download PDF');
+        }
+        
+        const blob = await pdfResponse.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'whatsapp_wrapped.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showStatus('PDF generated successfully! Check your downloads folder.', 'success');
+      }
+      
+      // Stop polling if process errored
+      if (data.status === 'error') {
+        console.log(`Progress polling stopped due to error: ${data.error}`);
+        clearInterval(progressInterval);
+        progressInterval = null;
+        showStatus(`Error: ${data.error}`, 'danger');
+      }
+    } catch (error) {
+      console.error('Error polling progress:', error);
+      clearInterval(progressInterval);
+      progressInterval = null;
+      showStatus('Lost connection to server', 'danger');
+    }
+  }
+
+  function updateProgressDisplay(data) {
+    console.log('Updating progress display:', data);
+    const statusMessages = {
+      'not_started': 'Preparing to generate PDF...',
+      'starting': 'Starting PDF generation...',
+      'generating': 'Generating PDF...',
+      'finalizing': 'Finalizing PDF...',
+      'completed': 'PDF generation complete!',
+      'error': 'Error generating PDF'
+    };
+
+    const message = statusMessages[data.status] || 'Processing...';
+    const progress = Math.round(data.progress);
+
+    loadingDiv.innerHTML = `
+      <div class="progress-container">
+        <div class="progress">
+          <div class="progress-bar" role="progressbar" style="width: ${progress}%" 
+               aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100">
+            ${progress}%
+          </div>
+        </div>
+        <div class="status-text mt-2">${message}</div>
+      </div>
+    `;
+  }
+
+  function stopProgressPolling() {
+    console.log('Stopping progress polling');
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
+    }
+    currentRequestId = null;
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fileInput = document.querySelector('#chatFile');
@@ -47,9 +160,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // Disable form while processing
+      stopProgressPolling();
+      loadingDiv.innerHTML = '';
       submitBtn.disabled = true;
-      showStatus('Generating your WhatsApp Wrapped...', 'info');
+      showStatus('Starting PDF generation...', 'info');
 
       const formData = new FormData();
       formData.append('chat', fileInput.files[0]);
@@ -63,36 +177,33 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       console.log('Response received:', response);
+      console.log('Response headers:', [...response.headers.entries()]);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      // Get the blob from the response
-      const blob = await response.blob();
-      console.log('Blob received:', blob);
-
-      // Create a temporary link and trigger download
-      const url = window.URL.createObjectURL(blob);
-      console.log('URL created:', url);
+      const data = await response.json();
+      currentRequestId = data.request_id;
+      console.log('Received request ID:', currentRequestId);
       
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = 'whatsapp_wrapped.pdf';
-      
-      // Add link to document and click it
-      document.body.appendChild(a);
-      console.log('Triggering download...');
-      a.click();
-      
-      // Cleanup
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      showStatus('PDF generated successfully! Check your downloads folder.', 'success');
+      if (currentRequestId) {
+        console.log('Starting progress polling for request:', currentRequestId);
+        progressInterval = setInterval(() => pollProgress(currentRequestId), 1000);
+        
+        updateProgressDisplay({
+          status: 'starting',
+          progress: 0
+        });
+      } else {
+        console.warn('No request ID received from server');
+        throw new Error('No request ID received from server');
+      }
     } catch (error) {
       console.error('Error during PDF generation:', error);
       showStatus(`Error: ${error.message}. Check console for details.`, 'danger');
+      stopProgressPolling();
     } finally {
       submitBtn.disabled = false;
     }

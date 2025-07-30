@@ -87,7 +87,8 @@
           <br>
           <button type="submit" class="btn btn-primary">Generate PDF</button>
           <br><br>
-          <div id="loading"></div>
+          <!-- Loading progress will be shown here -->
+          <div id="loading" class="loading-container"></div>
         </div>
       </form>
     </div>
@@ -115,6 +116,7 @@
     height: auto;
     width: auto\9;
   }
+  
   .row {
     white-space: nowrap;
   }
@@ -123,9 +125,11 @@
     width: 446px;
     display: inline-block;
   }
+  
   .strong {
     font-weight: bold;
   }
+  
   .right {
     text-align: right;
   }
@@ -140,6 +144,52 @@
 
   #status.show {
     display: block;
+  }
+
+  .loading-container {
+    margin: 20px auto;
+    max-width: 500px;
+  }
+
+  .progress-container {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+
+  .progress {
+    height: 25px;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .progress-bar {
+    background-color: #25D366;
+    color: white;
+    text-align: center;
+    line-height: 25px;
+    transition: width 0.5s ease;
+    font-weight: bold;
+  }
+
+  .status-text {
+    text-align: center;
+    color: #128C7E;
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-top: 10px;
+  }
+
+  #loading {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+    min-height: 50px;
   }
 </style>
 </body>
