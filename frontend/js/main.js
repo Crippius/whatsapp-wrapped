@@ -8,6 +8,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitBtn = form.querySelector('button[type="submit"]');
   const statusDiv = document.getElementById('status');
 
+  // Check backend health on page load
+  checkBackendHealth();
+
+  async function checkBackendHealth() {
+    try {
+      console.log('Checking backend health...');
+      const response = await fetch(`${API_URL}/health`, {
+        method: 'GET',
+        mode: 'cors'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend health check failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Backend health status:', data);
+
+      if (data.status !== 'ok') {
+        showStatus('Backend service is experiencing issues. Please try again later.', 'warning');
+        submitBtn.disabled = true;
+      }
+    } catch (error) {
+      console.error('Backend health check failed:', error);
+      showStatus('Backend service is currently unavailable. Please try again later.', 'danger');
+      submitBtn.disabled = true;
+    }
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fileInput = document.querySelector('#chatFile');

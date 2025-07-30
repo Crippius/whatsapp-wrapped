@@ -1,5 +1,7 @@
 import os, sys
 from pathlib import Path
+import platform
+from datetime import datetime
 
 # Add the backend directory to Python path
 backend_dir = str(Path(__file__).parent.parent)
@@ -30,6 +32,9 @@ PDF_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 
 # Create directories if they don't exist
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(PDF_DIR, exist_ok=True)
+
+# Track server start time
+SERVER_START_TIME = datetime.now()
 
 @app.post("/generate")
 def generate():
@@ -76,9 +81,29 @@ def generate():
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok", 
-                  env=os.getenv('FLASK_ENV', 'development'),
-                  temp_dir=TEMP_DIR)
+    # Check if temp directories exist and are writable
+    temp_ok = os.path.exists(TEMP_DIR) and os.access(TEMP_DIR, os.W_OK)
+    pdf_ok = os.path.exists(PDF_DIR) and os.access(PDF_DIR, os.W_OK)
+    
+    # Calculate uptime
+    uptime = datetime.now() - SERVER_START_TIME
+    
+    return jsonify({
+        'status': 'ok' if temp_ok and pdf_ok else 'error',
+        'environment': os.getenv('FLASK_ENV', 'development'),
+        'python_version': platform.python_version(),
+        'server_uptime': str(uptime),
+        'temp_directory': {
+            'path': TEMP_DIR,
+            'exists': os.path.exists(TEMP_DIR),
+            'writable': os.access(TEMP_DIR, os.W_OK)
+        },
+        'pdf_directory': {
+            'path': PDF_DIR,
+            'exists': os.path.exists(PDF_DIR),
+            'writable': os.access(PDF_DIR, os.W_OK)
+        }
+    })
 
 if __name__ == "__main__":
     # For local development
