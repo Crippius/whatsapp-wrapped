@@ -1,7 +1,7 @@
 // Configure API URL based on environment
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:5000'
-  : process.env.BACKEND_URL || 'https://whatsapp-wrapped-backend.onrender.com';
+  : 'https://whatsapp-wrapped-wldp.onrender.com';
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('chatForm');

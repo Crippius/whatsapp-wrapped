@@ -4,10 +4,13 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/", "destination": "/pages/index.html" },
-    { "source": "/(.*)", "destination": "/pages/$1" }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/faq", "destination": "/pages/faq.html" }
   ],
   "env": {
-    "BACKEND_URL": "https://your-backend-name.onrender.com"
-  }
+    "BACKEND_URL": "https://whatsapp-wrapped-wldp.onrender.com"
+  },
+  "buildCommand": "# no build needed",
+  "outputDirectory": ".",
+  "framework": null
 }

@@ -3,7 +3,7 @@ services:
     name: whatsapp-wrapped-backend
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn api.application:app
+    startCommand: gunicorn api.application:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
@@ -12,6 +12,6 @@ services:
       - key: FLASK_ENV
         value: production
       - key: FRONTEND_URL
-        value: https://whatsapp-wrapped.vercel.app
+        value: https://whatsapp-wrapped-delta.vercel.app
       - key: WEBSITE_URL
-        value: https://whatsapp-wrapped.vercel.app 
+        value: https://whatsapp-wrapped-delta.vercel.app 
