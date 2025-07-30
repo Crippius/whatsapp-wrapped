@@ -46,20 +46,6 @@
     </div>
   </nav>
 
-  <!-- In case there are some problems, an informational message drops down from the navbar and informs the user -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">
-          <button type="button" class="m1-2 mb-1 close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-            {{ message }}
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-
   <!-- Here all the accordion items are placed, all the questions are answered when opened -->
   <div class="container">
     <br>

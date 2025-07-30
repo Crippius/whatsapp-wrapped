@@ -11,6 +11,13 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # Use 'venv\Scripts\activate' on Windows
 pip install -r requirements.txt
+
+# Install system dependencies for Pillow
+echo "Installing system dependencies..."
+sudo apt-get update
+sudo apt-get install -y python3-dev python3-pip python3-setuptools libjpeg-dev zlib1g-dev
+
+
 # Create necessary directories
 mkdir -p temp pdfs text_files
 python api/application.py &

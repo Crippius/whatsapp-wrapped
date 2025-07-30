@@ -2,11 +2,14 @@ services:
   - type: web
     name: whatsapp-wrapped-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      apt-get update -y && 
+      apt-get install -y python3-dev python3-pip python3-setuptools libjpeg-dev zlib1g-dev &&
+      pip install -r requirements.txt
     startCommand: gunicorn api.application:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.0
+        value: 3.9.18
       - key: RENDER
         value: "1"
       - key: FLASK_ENV
