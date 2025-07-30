@@ -15,9 +15,25 @@ app = Flask(__name__)
 
 # Configure CORS based on environment
 if os.getenv('FLASK_ENV') == 'production':
-    CORS(app, origins=[os.getenv('FRONTEND_URL', '*')])
+    # In production, allow requests from your Vercel frontend
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["https://whatsapp-wrapped-delta.vercel.app"],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type"],
+            "supports_credentials": True
+        }
+    })
 else:
-    CORS(app, origins=['http://localhost:8080'])  # Frontend dev server
+    # In development, allow requests from localhost
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:8080"],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type"],
+            "supports_credentials": True
+        }
+    })
 
 # Configure temporary directories
 TEMP_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'temp')
@@ -50,7 +66,19 @@ def generate():
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
             
-        return send_file(pdf_path, as_attachment=True, download_name="whatsapp_wrapped.pdf")
+        response = send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name="whatsapp_wrapped.pdf",
+            mimetype='application/pdf'
+        )
+        
+        # Add CORS headers to the response
+        response.headers.add('Access-Control-Allow-Origin', 
+                           'https://whatsapp-wrapped-delta.vercel.app' if os.getenv('FLASK_ENV') == 'production' else 'http://localhost:8080')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

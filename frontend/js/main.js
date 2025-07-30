@@ -13,14 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.querySelector('#chatFile');
     
     if (!fileInput.files.length) {
-      alert('Please choose a file first');
+      showStatus('Please choose a file first', 'danger');
       return;
     }
 
     try {
       // Disable form while processing
       submitBtn.disabled = true;
-      statusDiv.textContent = 'Generating your WhatsApp Wrapped...';
+      showStatus('Generating your WhatsApp Wrapped...', 'info');
 
       const formData = new FormData();
       formData.append('chat', fileInput.files[0]);
@@ -28,7 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const response = await fetch(`${API_URL}/generate`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        mode: 'cors',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/pdf'
+        }
       });
 
       if (!response.ok) {
@@ -45,12 +50,24 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      statusDiv.textContent = 'PDF generated successfully!';
+      showStatus('PDF generated successfully!', 'success');
     } catch (error) {
       console.error('Error:', error);
-      statusDiv.textContent = `Error: ${error.message}`;
+      showStatus(`Error: ${error.message}`, 'danger');
     } finally {
       submitBtn.disabled = false;
     }
   });
+
+  function showStatus(message, type) {
+    statusDiv.textContent = message;
+    statusDiv.className = `alert alert-${type}`;
+    statusDiv.style.display = 'block';
+    
+    if (type === 'success' || type === 'danger') {
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+      }, 5000);
+    }
+  }
 });
