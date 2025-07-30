@@ -167,7 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const formData = new FormData();
       formData.append('chat', fileInput.files[0]);
-      formData.append('lang', 'en');
+      const langSelect = document.getElementById('langSelect');
+      formData.append('lang', langSelect.value);
 
       console.log('Sending request to:', `${API_URL}/generate`);
       const response = await fetch(`${API_URL}/generate`, {
