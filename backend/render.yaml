@@ -2,14 +2,8 @@ services:
   - type: web
     name: whatsapp-wrapped-backend
     env: python
-    region: frankfurt
-    buildCommand: |
-      apt-get update -y && 
-      apt-get install -y python3-dev python3-pip python3-setuptools \
-        libjpeg-dev zlib1g-dev libfreetype6-dev \
-        python3-pil python3-pil.imagetk &&
-      pip install --no-cache-dir -r requirements.txt
-    startCommand: gunicorn api.application:app --bind 0.0.0.0:$PORT --workers 2
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn api.application:app --bind 0.0.0.0:$PORT
     envVars:
       - key: RENDER
         value: "1"
@@ -18,6 +12,4 @@ services:
       - key: FRONTEND_URL
         value: https://whatsapp-wrapped-delta.vercel.app
       - key: WEBSITE_URL
-        value: https://whatsapp-wrapped-delta.vercel.app
-    healthCheckPath: /health
-    autoDeploy: true 
+        value: https://whatsapp-wrapped-delta.vercel.app 
