@@ -87,10 +87,21 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const blob = await pdfResponse.blob();
         const url = window.URL.createObjectURL(blob);
+       
+        // Get filename from Content-Disposition header or use default
+        let filename = 'whatsapp_wrapped.pdf';
+        const disposition = pdfResponse.headers.get('Content-Disposition');
+        if (disposition && disposition.includes('filename=')) {
+          const filenameMatch = disposition.match(/filename=(.+)/);
+          if (filenameMatch.length > 1) {
+            filename = decodeURIComponent(filenameMatch[1].replace(/["']/g, ''));
+          }
+        }
+        
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = 'whatsapp_wrapped.pdf';
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

@@ -107,7 +107,13 @@ def generate():
             "pdf_path": None
         }
         
-        tmp_path = os.path.join(TEMP_DIR, f"{request_id}.txt")
+        # Preserve original filename, ensuring it matches expected format
+        original_filename = f.filename
+        if not any(pattern in original_filename for pattern in ["Chat WhatsApp con", "Chat_WhatsApp_con_", "WhatsApp Chat -"]):
+            # If filename doesn't match expected format, rename it to match
+            original_filename = f"Chat WhatsApp con {original_filename}"
+        
+        tmp_path = os.path.join(TEMP_DIR, original_filename)
         f.save(tmp_path)
         
         # Start PDF generation in background thread
@@ -176,7 +182,7 @@ def download_pdf(request_id):
         pdf_path,
         mimetype='application/pdf',
         as_attachment=True,
-        download_name="whatsapp_wrapped.pdf"
+        download_name=os.path.basename(pdf_path)
     )
 
 @app.get("/health")
