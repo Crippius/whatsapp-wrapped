@@ -1,0 +1,66 @@
+import os, sys
+from pathlib import Path
+
+# Add the backend directory to Python path
+backend_dir = str(Path(__file__).parent.parent)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+from flask import Flask, request, send_file, jsonify
+from flask_cors import CORS
+from src.pdf.constructor import PDF_Constructor
+import uuid
+
+app = Flask(__name__)
+
+# Configure CORS based on environment
+if os.getenv('FLASK_ENV') == 'production':
+    CORS(app, origins=[os.getenv('FRONTEND_URL', '*')])
+else:
+    CORS(app, origins=['http://localhost:8080'])  # Frontend dev server
+
+# Configure temporary directories
+TEMP_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'temp')
+PDF_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'pdfs')
+
+# Create directories if they don't exist
+os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(PDF_DIR, exist_ok=True)
+
+@app.post("/generate")
+def generate():
+    try:
+        if 'chat' not in request.files:
+            return jsonify({'error': 'No chat file provided'}), 400
+            
+        f = request.files["chat"]
+        lang = request.form.get("lang", "en")
+        
+        # Save uploaded file
+        tmp_path = os.path.join(TEMP_DIR, f"{uuid.uuid4()}.txt")
+        f.save(tmp_path)
+        
+        # Generate PDF
+        pdf = PDF_Constructor(tmp_path, lang=lang)
+        from src.seeds import seed1
+        seed1(pdf)
+        pdf_path = pdf.save()
+        
+        # Cleanup
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+            
+        return send_file(pdf_path, as_attachment=True, download_name="whatsapp_wrapped.pdf")
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.get("/health")
+def health():
+    return jsonify(status="ok", 
+                  env=os.getenv('FLASK_ENV', 'development'),
+                  temp_dir=TEMP_DIR)
+
+if __name__ == "__main__":
+    # For local development
+    app.run(debug=True, port=5000)
