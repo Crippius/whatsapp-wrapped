@@ -11,8 +11,17 @@ document.addEventListener('DOMContentLoaded', () => {
   let progressInterval = null;
   let currentRequestId = null;
 
-  // Check backend health on page load
-  checkBackendHealth();
+  // Disable submit button by default
+  submitBtn.disabled = true;
+
+  // Check backend health on page load with timeout
+  const healthCheckTimeout = setTimeout(() => {
+    showStatus('The server is taking a lot of time starting up, reload the website in about a minute to generate your PDF', 'danger');
+  }, 10000); // 10 second timeout
+
+  checkBackendHealth().then(() => {
+    clearTimeout(healthCheckTimeout);
+  });
 
   async function checkBackendHealth() {
     try {
@@ -29,7 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       console.log('Backend health status:', data);
 
-      if (data.status !== 'ok') {
+      if (data.status === 'ok') {
+        submitBtn.disabled = false;
+      } else {
         showStatus('Backend service is experiencing issues. Please try again later.', 'warning');
         submitBtn.disabled = true;
       }
@@ -224,13 +235,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function showStatus(message, type) {
     console.log(`Status update: ${type} - ${message}`);
     statusDiv.textContent = message;
+  
     statusDiv.className = `alert alert-${type} show`;
-    statusDiv.style.display = 'block';
     
     if (type === 'success' || type === 'danger') {
       setTimeout(() => {
-        statusDiv.style.display = 'none';
-        statusDiv.className = 'alert';
+        statusDiv.style.transform = 'translateY(200%)';
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+          statusDiv.className = 'alert';
+        }, 300);
       }, 5000);
     }
   }
