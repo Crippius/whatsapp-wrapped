@@ -1,4 +1,8 @@
 import os, sys
+os.environ['MPLBACKEND'] = 'Agg'  # Set backend through env var before any imports
+import warnings
+warnings.simplefilter('ignore')  # Ignore all warnings
+
 from pathlib import Path
 import platform
 from datetime import datetime
@@ -9,6 +13,11 @@ import time
 from flask import Flask, request, send_file, jsonify, make_response
 from flask_cors import CORS
 import uuid
+
+import matplotlib
+matplotlib.use('Agg', force=True)
+matplotlib.set_loglevel('critical')  # Only show critical errors
+
 
 backend_dir = str(Path(__file__).parent.parent)
 if backend_dir not in sys.path:
@@ -43,28 +52,39 @@ pdf_progress = defaultdict(lambda: {
     "pdf_path": None
 })
 
+def monitor_progress(request_id, pdf):
+    """Monitor the progress of PDF generation in a separate thread"""
+    try:
+        while pdf_progress[request_id]["status"] == "generating":
+            current_progress = pdf.load
+            pdf_progress[request_id]["progress"] = current_progress
+            if current_progress >= 99:
+                break
+            time.sleep(0.5)
+    except Exception as e:
+        print(f"Progress monitoring error: {e}")
+
 def generate_pdf(request_id, file_path, lang):
     """Background thread to generate the PDF
     request_id: the id of the request
     file_path: the path of the file to generate the PDF from
     lang: the language of the PDF
     """
-
     try:
         pdf_progress[request_id]["status"] = "generating"
         
-    
         pdf = PDF_Constructor(file_path, lang=lang)
+        
+        # Start progress monitoring in a separate thread
+        monitor_thread = threading.Thread(
+            target=monitor_progress,
+            args=(request_id, pdf),
+            daemon=True
+        )
+        monitor_thread.start()
+        
         seed1(pdf)
         
-        # Continuously update progress while generating
-        while pdf_progress[request_id]["status"] == "generating":
-            current_progress = pdf.load
-            if current_progress >= 99:  
-                break
-            pdf_progress[request_id]["progress"] = current_progress
-            time.sleep(0.5)
-            
         pdf_progress[request_id]["status"] = "finalizing"
         pdf_progress[request_id]["progress"] = 99
         
@@ -107,13 +127,7 @@ def generate():
             "pdf_path": None
         }
         
-        # Preserve original filename, ensuring it matches expected format
-        original_filename = f.filename
-        if not any(pattern in original_filename for pattern in ["Chat WhatsApp con", "Chat_WhatsApp_con_", "WhatsApp Chat -"]):
-            # If filename doesn't match expected format, rename it to match
-            original_filename = f"Chat WhatsApp con {original_filename}"
-        
-        tmp_path = os.path.join(TEMP_DIR, original_filename)
+        tmp_path = os.path.join(TEMP_DIR, f.filename)
         f.save(tmp_path)
         
         # Start PDF generation in background thread

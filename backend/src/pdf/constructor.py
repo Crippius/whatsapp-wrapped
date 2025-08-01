@@ -3,6 +3,7 @@ PDF construction logic for WhatsApp Wrapped.
 """
 
 import os
+import re
 import pandas as pd
 from fpdf import FPDF
 from datetime import date, timedelta
@@ -12,6 +13,11 @@ from src.data.parser import get_data, remove_header, get_message_freq_dict, sort
 from src.pdf.plots import (
     plot_emojis, plot_number_of_messages, plot_day_of_the_week, plot_most_used_words, plot_most_active_people, plot_time_of_messages
 )
+
+
+from matplotlib.font_manager import FontProperties
+from matplotlib import rcParams
+
 
 HEIGHT = 297
 WIDTH = 210
@@ -40,23 +46,13 @@ class PDF_Constructor(FPDF):
     img_path = path.join(BASE_DIR, '../../static/')
 
     def __init__(self, file: str, lang="en"):
-
-
-        import sys
-        print(sys.executable)
-
-        import fpdf
-        print("FPDF module:", fpdf.__file__)
-        print("FPDF version:", fpdf.__version__)
-
+        
+        # Prepare the file
         if not path.exists(file):
             print("No such file exists")
             self.ok = 0
         else:
             self.ok = 1
-        self.lang = lang
-        m = None
-        import re
         m = re.search("Chat WhatsApp con (.+?).txt", file)
         if m is not None:
             self.name = font_friendly(m.group(1))
@@ -66,8 +62,13 @@ class PDF_Constructor(FPDF):
                 self.name = font_friendly(m.group(1))
             else:
                 self.name = ""
+
+        # Initialize the PDF constructor
         FPDF.__init__(self)
         self.counter = 0
+        self.lang = lang
+
+        # Prepare the dataframe
         self.df = pd.DataFrame(get_data(file, font_friendly=font_friendly), columns=["date", "time", "who", "message"])
         self.df.date = pd.to_datetime(self.df.date, format="%d/%m/%y")
         self.df.time = pd.to_timedelta(self.df.time)
@@ -78,12 +79,14 @@ class PDF_Constructor(FPDF):
             lst = list(set(self.df.who))
             lst.remove("info")
             self.name = tuple([lst[lst.index(self.name)], lst[not lst.index(self.name)]])
+
+        # PDF_Constructor attributes
         self.plot_pos = {"left": LEFT_PLOT, "right": RIGHT_PLOT}
         self.pos = {"left": 0, "right": 0}
         self.last = {"left": None, "right": None}
         self.load = (self.pos["left"] / HEIGHT * self.pos["right"] / HEIGHT) * 100
-        from matplotlib.font_manager import FontProperties
-        from matplotlib import rcParams
+        
+        # Set the font
         prop = FontProperties(fname=get_data_file_path('my_fonts/seguiemj.ttf'))
         rcParams['font.family'] = prop.get_name()
         self.add_font('seguiemj', '', get_data_file_path('my_fonts/seguiemj.ttf'), uni=True)
@@ -91,6 +94,7 @@ class PDF_Constructor(FPDF):
         self.add_structure()
 
     def add_structure(self):
+        # Add the template structure of the PDF
         self.add_page()
         self.image(path.join(PDF_Constructor.img_path, 'background.png'), x=0, y=0, w=WIDTH, h=HEIGHT)
         self.image(path.join(PDF_Constructor.img_path, 'top_level.png'), x=0, y=0, w=WIDTH)
@@ -110,7 +114,6 @@ class PDF_Constructor(FPDF):
         self.image(path.join(PDF_Constructor.img_path, "writing_box.png"), x=20, y=self.get_y()-4, w=WIDTH-40)
         self.cell(30, 0)
         self.set_font_size(12)
-        # Get the website URL from environment or use default
         website_url = getenv('WEBSITE_URL', 'https://whatsapp-wrapped.vercel.app')
         txt = {"en": f"Do you want to create your own wrapped? 🤨\nThen try it @ {website_url} 👈",
                "it": f"Vuoi creare il wrapped di una tua chat? 🤨\nVai su {website_url} 👈"}
