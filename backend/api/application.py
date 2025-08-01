@@ -58,11 +58,12 @@ def monitor_progress(request_id, pdf):
         while pdf_progress[request_id]["status"] == "generating":
             current_progress = pdf.load
             pdf_progress[request_id]["progress"] = current_progress
+            print(f"[{request_id}] Current progress: {current_progress}%")
             if current_progress >= 99:
                 break
             time.sleep(0.5)
     except Exception as e:
-        print(f"Progress monitoring error: {e}")
+        print(f"[{request_id}] Progress monitoring error: {str(e)}\n{traceback.format_exc()}")
 
 def generate_pdf(request_id, file_path, lang):
     """Background thread to generate the PDF
@@ -70,6 +71,7 @@ def generate_pdf(request_id, file_path, lang):
     file_path: the path of the file to generate the PDF from
     lang: the language of the PDF
     """
+    print(f"[{request_id}] Starting PDF generation for file: {os.path.basename(file_path)}, language: {lang}")
     try:
         pdf_progress[request_id]["status"] = "generating"
         
@@ -85,6 +87,7 @@ def generate_pdf(request_id, file_path, lang):
         
         seed1(pdf)
         
+        print(f"[{request_id}] PDF processing complete, finalizing")
         pdf_progress[request_id]["status"] = "finalizing"
         pdf_progress[request_id]["progress"] = 99
         
