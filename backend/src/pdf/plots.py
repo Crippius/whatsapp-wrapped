@@ -5,14 +5,15 @@ Plotting functions for WhatsApp Wrapped PDF generation.
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.font_manager import FontProperties
-from matplotlib import rcParams
+from matplotlib import rcParams, font_manager
 from datetime import date, timedelta
 from wordcloud import WordCloud
 from math import pi
 import pandas as pd
 from src.utils import font_friendly, get_data_file_path
 from src.data.parser import get_message_freq_dict, sort_dict, max_and_index
-
+from emoji import EMOJI_DATA
+import os
 
 def spider_plot(categories, values):
     """Create spider plot."""
@@ -81,8 +82,14 @@ def add_labels_to_bar(plot, labels, font_size=18, dir="vertical", pos="external"
 
 def plot_emojis(df, output_path, lang="en", who="", reverse=False, info=True, counter=0):
     """Plot most used emojis in chat and save to output_path."""
-    from emoji import EMOJI_DATA
-    import os
+    
+    font_path = get_data_file_path('my_fonts/seguiemj.ttf')
+    try:
+        font_manager.fontManager.addfont(font_path)
+    except Exception:
+        pass
+    prop = FontProperties(fname=font_path)
+    rcParams['font.family'] = prop.get_name()
     messages = df.message if who == "" or who not in df.who.unique() else df[df.who == who].message
     emojis = {}
     for message in messages:
@@ -99,14 +106,23 @@ def plot_emojis(df, output_path, lang="en", who="", reverse=False, info=True, co
     if len(emojis.keys()) == 0:
         emojis["🏼"] = 0
     title = {"en": "Most used Emojis:", "it": "Emoji più utilizzate:"}
-    plt.title(title[lang])
-    plot = plt.bar(emojis.keys(), emojis.values(), color="#26d367")
-    plt.xticks(fontsize=20)
+    fig, ax = plt.subplots()
+    ax.set_title(title[lang])
+    plot = ax.bar(emojis.keys(), emojis.values(), color="#26d367")
+    ax.set_xticks(range(len(emojis)))
+    ax.set_xticklabels(list(emojis.keys()))
+    for tick in ax.get_xticklabels():
+        if prop is not None:
+            tick.set_fontproperties(prop)
+        tick.set_fontsize(20)
     if info:
         txt = {"en": f"{sum(emojis.values())} total\nemojis 😯", "it": f"{sum(emojis.values())} emoji\ntotali 😯"}
-        plt.text(x=plt.xlim()[0]+1 if reverse else plt.xlim()[1]-1, y=plt.ylim()[1]*9/10, s=txt[lang],
-                 ha="left" if reverse else "right", va="top", fontsize=16,
-                 bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'))
+        axlim = ax.get_xlim()
+        ayl = ax.get_ylim()
+        ax.text(x=axlim[0]+1 if reverse else axlim[1]-1, y=ayl[1]*9/10, s=txt[lang],
+                ha="left" if reverse else "right", va="top", fontsize=16,
+                bbox=dict(facecolor='none', edgecolor='black', boxstyle='round,pad=1'),
+                fontproperties=prop if prop is not None else None)
     emojis_to_size_dict = {1:28, 2:26, 3:24, 4:22, 5:21, 6:20, 7:18, 8:16, 9:14, 10:12}
     add_labels_to_bar(plot, emojis.values(), font_size=emojis_to_size_dict[len(emojis)], dir="vertical")
     plt.savefig(os.path.join(output_path, f"{counter}.png"), transparent=True)
