@@ -5,7 +5,9 @@ from typing import Optional
 import urllib.parse as urlparse
 
 try:
+    print("[DB] Trying to import psycopg2")
     import psycopg2  # noqa: F401
+    print("[DB] psycopg2 imported successfully")
     HAS_PG = True
 except Exception:
     HAS_PG = False
@@ -14,6 +16,7 @@ except Exception:
 # Database path configuration compatible with Render and local dev
 DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
 USE_POSTGRES = DATABASE_URL.startswith('postgres://') or DATABASE_URL.startswith('postgresql://')
+print(f"[DB] USE_POSTGRES: {USE_POSTGRES}, \n DATABASE_URL: {DATABASE_URL}, \n HAS_PG: {HAS_PG}")
 
 # SQLite path used as fallback
 SQLITE_PATH = (
