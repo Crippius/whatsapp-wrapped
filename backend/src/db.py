@@ -25,7 +25,9 @@ SQLITE_PATH = (
 def _get_connection():
     """Return a DB connection depending on environment."""
     if USE_POSTGRES and HAS_PG:
+        print("[DB] Using PostgreSQL")
         return psycopg2.connect(DATABASE_URL)
+    print("[DB] Using SQLite")
     return sqlite3.connect(SQLITE_PATH)
 
 
@@ -72,6 +74,7 @@ def init_db():
         )
 
         conn.commit()
+        print("[DB] Tables created successfully")
     finally:
         conn.close()
 
@@ -107,6 +110,7 @@ def save_pdf_generation(request_id: str, language: str, status: str, processing_
                 (request_id, language, status, error, processing_time_ms)
             )
         conn.commit()
+        print("[DB] PDF generation data saved successfully")
     finally:
         conn.close()
 
@@ -172,6 +176,7 @@ def save_chat_analytics(request_id: str, analytics: dict) -> None:
                 )
                 ''', params)
         conn.commit()
+        print("[DB] Chat analytics data saved successfully")
     finally:
         conn.close()
 
