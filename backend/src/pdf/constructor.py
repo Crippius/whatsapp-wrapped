@@ -369,3 +369,65 @@ class PDF_Constructor(FPDF):
             if path.exists(file_path):
                 remove(file_path)
         return output_path 
+
+    def get_analytics(self) -> dict:
+        """Return aggregate analytics about the parsed chat."""
+        import pandas as pd
+        from datetime import date, timedelta
+        df = self.df
+
+        total_messages = len(df)
+        participants = set(df.who)
+        if "info" in participants:
+            participants.remove("info")
+        participants_count = len(participants)
+        is_group = self.group
+
+        start_date = pd.to_datetime(df.date.min()).date() if total_messages else None
+        end_date = pd.to_datetime(df.date.max()).date() if total_messages else None
+        active_days = len(set(df.date)) if total_messages else 0
+
+        days_range = max(1, len(pd.date_range(df.date.iloc[0], date.today()))) if total_messages else 1
+        avg_msgs_per_day = round(total_messages / days_range, 2)
+
+        if total_messages:
+            weekday_counts = df.date.dt.dayofweek.value_counts()
+            most_active_weekday = int(weekday_counts.idxmax()) if len(weekday_counts) else None
+            month_counts = df.date.dt.to_period("M").value_counts()
+            most_active_month = str(month_counts.idxmax()) if len(month_counts) else None
+        else:
+            most_active_weekday = None
+            most_active_month = None
+
+        files_shared_count = int(df.message.fillna("").str.contains("<Media", na=False).sum())
+
+        avg_message_length_words = round(
+            sum(len(str(m).split()) for m in df.message) / total_messages, 2
+        ) if total_messages else 0.0
+
+        from datetime import timedelta
+        resp_seconds = None
+        if total_messages > 1:
+            deltas = (df.date + df.time).diff().dropna()
+            if len(deltas) > 0:
+                first_q = len(deltas)//4
+                last_q = len(deltas)*3//4
+                denom = max(1, (last_q-first_q))
+                iqr_mean = sum(deltas.iloc[first_q:last_q], timedelta(0)) / denom / 2
+                resp_seconds = int(iqr_mean.total_seconds())
+
+        return {
+            "total_messages": total_messages,
+            "participants_count": participants_count,
+            "is_group": bool(is_group),
+            "start_date": str(start_date) if start_date else None,
+            "end_date": str(end_date) if end_date else None,
+            "active_days": active_days,
+            "avg_msgs_per_day": avg_msgs_per_day,
+            "most_active_weekday": most_active_weekday,
+            "most_active_month": most_active_month,
+            "files_shared_count": files_shared_count,
+            "avg_message_length_words": avg_message_length_words,
+            "response_seconds_typical": resp_seconds,
+            "lang": self.lang,
+        }

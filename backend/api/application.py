@@ -13,24 +13,30 @@ import time
 from flask import Flask, request, send_file, jsonify, make_response
 from flask_cors import CORS
 import uuid
-
+import sqlite3
+from datetime import datetime
 import matplotlib
-matplotlib.use('Agg', force=True)
-matplotlib.set_loglevel('critical')  # Only show critical errors
 
+matplotlib.use('Agg', force=True)
+matplotlib.set_loglevel('critical') 
 
 backend_dir = str(Path(__file__).parent.parent)
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 from src.pdf.constructor import PDF_Constructor
+from src.db import init_db, save_pdf_generation, save_chat_analytics
 from src.seeds import *
+
+
+
+SERVER_START_TIME = datetime.now()
 
 app = Flask(__name__)
 
 CORS(app, resources={
     r"/*": {
-        "origins": ["https://whatsapp-wrapped-delta.vercel.app", "http://localhost:8080"],
+        "origins": ["https://whatsapp-wrapped-delta.vercel.app", "http://localhost:8080", "http://whatsapp-wrapped.it"],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"],
         "expose_headers": ["Content-Disposition", "Content-Type", "X-Request-ID"]
@@ -43,7 +49,9 @@ PDF_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(PDF_DIR, exist_ok=True)
 
-SERVER_START_TIME = datetime.now()
+
+# Database setup
+init_db()
 
 # pdf_progress stores the progress of the PDF generation
 pdf_progress = defaultdict(lambda: {
@@ -72,6 +80,7 @@ def generate_pdf(request_id, file_path, lang):
     lang: the language of the PDF
     """
     print(f"[{request_id}] Starting PDF generation for file: {os.path.basename(file_path)}, language: {lang}")
+    start_time = time.time()
     try:
         pdf_progress[request_id]["status"] = "generating"
         
@@ -100,11 +109,26 @@ def generate_pdf(request_id, file_path, lang):
             "pdf_path": pdf_path
         })
         
+        # Store analytics
+        try:
+            processing_ms = int((time.time() - start_time) * 1000)
+            save_pdf_generation(request_id=request_id, language=lang, status="completed", processing_time_ms=processing_ms, error=None)
+            analytics = pdf.get_analytics()
+            save_chat_analytics(request_id, analytics)
+            
+        except Exception as analytics_err:
+            print(f"[{request_id}] Analytics/DB save error: {str(analytics_err)}\n{traceback.format_exc()}")
+        
     except Exception as e:
         pdf_progress[request_id].update({
             "status": "error",
             "error": str(e)
         })
+        try:
+            processing_ms = int((time.time() - start_time) * 1000)
+            save_pdf_generation(request_id=request_id, language=lang, status="error", processing_time_ms=processing_ms, error=str(e))
+        except Exception as status_err:
+            print(f"[{request_id}] Status save error: {str(status_err)}\n{traceback.format_exc()}")
     finally:
         # Cleanup input file
         if os.path.exists(file_path):

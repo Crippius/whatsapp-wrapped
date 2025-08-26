@@ -52,6 +52,7 @@ whatsapp-wrapped/
 │   │   │   └── parser.py                  # Parsing exported WhatsApp chats
 │   │   ├── seeds.py                       # Seeds/templates for PDF content
 │   │   ├── utils.py                       # Utility functions
+│   │   ├── db.py                          # Database functions
 │   │   └── flask_classes.py               # Flask forms and validators
 │   ├── static/                            # Backend static assets (if any)
 │   ├── pdfs/                              # Generated PDF files (backend-run)
