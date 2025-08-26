@@ -40,25 +40,39 @@ You can also get info about
 
 ```
 whatsapp-wrapped/
-├── api/                    # Flask web app (routes/controllers)
-│   └── application.py      # Flask app entry point
-├── src/                    # Source code
-│   ├── pdf/                # PDF generation logic
-│   │   ├── constructor.py      # PDF_Constructor class and PDF logic
-│   │   └── plots.py            # All plotting functions (matplotlib, wordcloud, etc.)
-│   ├── data/               # Data extraction and cleaning
-│   │   ├── parser.py           # get_data, remove_header, etc.
-│   │   └── seeds.py            # Seeds/templates for PDF content
-│   ├── utils.py            # Utility functions (legacy)
-│   ├── flask_classes.py    # Flask forms and validators
-│   └── __init__.py         # Package marker
-├── static/                 # Static assets (images, CSS)
-├── templates/              # HTML templates
-├── text_files/             # Uploaded WhatsApp chat files
-├── pdfs/                   # Generated PDF files
-├── my_fonts/               # Custom fonts for PDF/plots
-├── requirements.txt        # Python dependencies
-└── README.md               # Project documentation
+├── backend/                               # Backend (Flask API and core logic)
+│   ├── api/                               # Flask web app (routes/controllers)
+│   │   ├── application.py                 # Flask app entry point
+│   │   └── config.py                      # App configuration
+│   ├── src/                               # Source code
+│   │   ├── pdf/                           # PDF generation logic
+│   │   │   ├── constructor.py             # PDF_Constructor class and PDF logic
+│   │   │   └── plots.py                   # Plotting functions (matplotlib, wordcloud, etc.)
+│   │   ├── data/                          # Data extraction and cleaning
+│   │   │   └── parser.py                  # Parsing exported WhatsApp chats
+│   │   ├── seeds.py                       # Seeds/templates for PDF content
+│   │   ├── utils.py                       # Utility functions
+│   │   └── flask_classes.py               # Flask forms and validators
+│   ├── static/                            # Backend static assets (if any)
+│   ├── pdfs/                              # Generated PDF files (backend-run)
+│   ├── text_files/                        # Uploaded WhatsApp chat files (backend)
+│   ├── my_fonts/                          # Custom fonts for PDF/plots
+│   ├── lists/                             # Auxiliary lists/data
+│   ├── requirements.txt                   # Backend Python dependencies
+│   └── render.yaml                        # Deployment config (Render)
+├── frontend/                              # Frontend (static site)
+│   ├── index.html                         # Main UI
+│   ├── faq.html                           # FAQ page
+│   ├── js/
+│   │   └── main.js                        # Frontend logic
+│   ├── static/                            # Frontend static assets (images, CSS)
+│   ├── public/                            # Public assets
+│   └── vercel.json                        # Frontend deployment config
+├── pdfs/                                  # Generated PDFs (root-level, optional)
+├── text_files/                            # Uploaded chat files (root-level, optional)
+├── run_local.sh                           # Script to start frontend and backend locally
+├── README.md                              # Project documentation
+└── .gitignore
 ```
 
 ## Installation
@@ -82,28 +96,16 @@ whatsapp-wrapped/
 
 ## Usage
 
-### Run the Flask App
+The application can be easily started locally by running inside the root directory the following command
+```bash
+   ./run_local.sh
+```
+The script will automatically create the frontend and backend in the following ports:
 
-1. **Set environment variables (optional):**
-   - For local development, you may want to set `FLASK_APP` and `FLASK_ENV`:
-     ```bash
-     export FLASK_APP=api/application.py
-     export FLASK_ENV=development
-     ```
-     On Windows (PowerShell):
-     ```powershell
-     $env:FLASK_APP = "api/application.py"
-     $env:FLASK_ENV = "development"
-     ```
+* Frontend: http://localhost:8080
+* Backend: http://localhost:5000
 
-2. **Start the app:**
-   ```bash
-   flask run
-   ```
-   The app will be available at http://127.0.0.1:5000
+To get the application paste the frontend address inside your browser and use the web interface to generate your PDF report
 
-3. **Upload a WhatsApp chat file** on the web interface to generate your PDF report.
-
----
 
 For more details, see the README files in each subfolder. 
