@@ -2,41 +2,41 @@
 
 ![Example](https://imgur.com/tZYIfJb.png)
 
-## Description
-This repository contains the project I developed during the summmer of '22, in which I created a script 
-that takes an exported .txt file from a Whatsapp chat and
-outputs a PDF that explores lots of interesting information and data about its conversations through graphs
-and made-up messages.
+## 📝 Description
+Transform your WhatsApp chat history into a beautiful PDF report filled with interesting insights, data visualizations, and engaging analytics. This tool analyzes your exported chat file and creates a comprehensive report showing your messaging patterns, favorite emojis, and much more!
 
-The program supports both IOS and Android exported files.
-The supported languages are English and Italian.
+✨ **Supported Platforms:** iOS and Android
 
-## How to export a Whatsapp chat
-* Go to the chat you want to want to know more
-* Click the three dots on the top right of your screen 
-* Click "More"
-* Click "Export chat" 
-* Click "Without media"
-* Download it into your device 
-* Use it in this script!
+🌍 **Supported Languages:** English and Italian
 
-## Functionalities
-Possible plots:
-* Number of messages from the start of your texting journey to today (line plot)
-* Most used emojis (bar plot)
-* Most used words (bar plot / wordcloud)
-* Number of messages per weekday (spider plot)
-* Most active people (bar plot)
-* Number of messages per time of day (line plot)
+## 📱 How to Export Your WhatsApp Chat
+1. Open the WhatsApp chat you want to analyze
+2. Tap the three dots (⋮) in the top right corner
+3. Select **More**
+4. Choose **Export chat**
+5. Select **Without media**
+6. Save the file to your device
+7. Upload it to WhatsApp Wrapped!
 
-You can also get info about
-* Total number of messages
-* Most active day/month/year/weekday
-* Longest (in)active streak
-* Average response time
-* And much more!!! 
+## 🎨 Features
 
-## File Structure
+### 📊 Visualizations
+- Message frequency timeline
+- Most used emoji analysis
+- Popular words analysis (bar plot & wordcloud)
+- Weekly messaging patterns (spider plot)
+- Most active participants
+- Daily message distribution
+
+### 📈 Analytics
+- Total message count
+- Peak activity periods (day/month/year/weekday)
+- Conversation streaks (active & inactive)
+- Response time analysis
+- And many more insights!
+
+
+## 🗂️ Project Structure
 
 ```
 whatsapp-wrapped/
@@ -76,37 +76,44 @@ whatsapp-wrapped/
 └── .gitignore
 ```
 
-## Installation
+## 🚀 Getting Started
 
-1. **Clone the repository:**
+### Prerequisites
+- Python 3.12
+- Git
+
+### Installation
+
+1. **Clone the repository**
    ```bash
    git clone https://github.com/Crippius/whatsapp-wrapped.git
    cd whatsapp-wrapped
    ```
 
-2. **Set up a Python environment (recommended):**
+2. **Create a Python environment**
    ```bash
    conda create -n ww python=3.12
    conda activate ww
    ```
 
-3. **Install dependencies:**
+3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-## Usage
+## 💻 Usage
 
-The application can be easily started locally by running inside the root directory the following command
+Launch the application locally with:
 ```bash
-   ./run_local.sh
+./run_local.sh
 ```
-The script will automatically create the frontend and backend in the following ports:
 
-* Frontend: http://localhost:8080
-* Backend: http://localhost:5000
+This will start:
+- 🌐 Frontend: [http://localhost:8080](http://localhost:8080)
+- ⚙️ Backend: [http://localhost:5000](http://localhost:5000)
 
-To get the application paste the frontend address inside your browser and use the web interface to generate your PDF report
+Simply open the frontend URL in your browser to start generating your WhatsApp reports!
 
+---
 
-For more details, see the README files in each subfolder. 
+📚 For detailed documentation, check the README files in each subfolder.
