@@ -1,6 +1,6 @@
 # whatsapp-wrapped
 
-![Example](https://imgur.com/tZYIfJb.png)
+![Example](https://imgur.com/pVzVEwE.png)
 
 ## 📝 Description
 Transform your WhatsApp chat history into a beautiful PDF report filled with interesting insights, data visualizations, and engaging analytics. This tool analyzes your exported chat file and creates a comprehensive report showing your messaging patterns, favorite emojis, and much more!
