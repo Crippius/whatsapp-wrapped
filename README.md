@@ -5,9 +5,11 @@
 ## 📝 Description
 Transform your WhatsApp chat history into a beautiful PDF report filled with interesting insights, data visualizations, and engaging analytics. This tool analyzes your exported chat file and creates a comprehensive report showing your messaging patterns, favorite emojis, and much more!
 
-✨ **Supported Platforms:** iOS and Android
+### **Try it out here!** 👉 https://whatsapp-wrapped-delta.vercel.app/
 
-🌍 **Supported Languages:** English and Italian
+> ✨ **Supported Platforms:** iOS and Android
+>
+> 🌍 **Supported Languages:** English and Italian
 
 ## 📱 How to Export Your WhatsApp Chat
 1. Open the WhatsApp chat you want to analyze
