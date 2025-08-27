@@ -14,6 +14,8 @@ from src.utils import font_friendly, get_data_file_path
 from src.data.parser import get_message_freq_dict, sort_dict, max_and_index
 from emoji import EMOJI_DATA
 import os
+import nltk
+from nltk.corpus import stopwords
 
 def spider_plot(categories, values):
     """Create spider plot."""
@@ -193,11 +195,22 @@ def plot_day_of_the_week(df, output_path, lang="en", counter=0):
 def plot_most_used_words(df, output_path, lang="en", wordcloud=True, counter=0):
     """Plot most used words as barplot or wordcloud and save to output_path."""
     import os
+
     
-    blacklist = [i.strip() for i in open(get_data_file_path("lists/blacklist.txt"), "r").readlines()] + ["è"]
-    most_used_words = get_message_freq_dict(df.message, blacklist=blacklist)
+    try:
+        nltk.data.find('corpora/stopwords')
+    except LookupError:
+        nltk.download('stopwords')
+    
+    # Create a set of stopwords from both languages and custom blacklist
+    stop_words = set()
+    stop_words.update(stopwords.words('english'))
+    stop_words.update(stopwords.words('italian'))
+    stop_words.update(i.strip() for i in open(get_data_file_path("lists/blacklist.txt"), "r").readlines())
+    
+    most_used_words = get_message_freq_dict(df.message, blacklist=list(stop_words))
     if wordcloud:
-        plot = WordCloud(width=400, height=300, max_words=100, stopwords=blacklist, min_font_size=6,
+        plot = WordCloud(width=400, height=300, max_words=100, stopwords=stopwords, min_font_size=6,
                          background_color=None, mode="RGBA", colormap="summer").generate_from_frequencies(most_used_words)
         plt.imshow(plot, interpolation="bilinear")
         plt.axis("on")

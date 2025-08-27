@@ -6,6 +6,7 @@ import re
 import pandas as pd
 from string import punctuation
 from datetime import timedelta
+from collections import Counter
 
 
 def IOS_or_Android(txt: str, regexs: dict) -> str:
@@ -41,16 +42,18 @@ def get_data(file: str, font_friendly=None) -> list:
                 time = norm.group(2)
                 who = font_friendly(norm.group(3)) if font_friendly else norm.group(3)
                 message = norm.group(4)
-            else:
+            else: # Info message
                 date = info.group(1)
                 time = info.group(2)
                 who = "info"
                 message = info.group(3)
+                pass
             if device == "Android":
                 time += ":00"
             while message.find("‎") != -1:
                 message = message[:message.find("‎")] + message[message.find("‎") + 1:]
-            data.append([date, time, who, message])
+            if who != "info": # We can avoid adding info messages to dataframe, not used in analysis
+                data.append([date, time, who, message])
         elif len(data) != 0:
             data[-1][3] += "\n" + trame
         trame = fp.readline()
@@ -64,15 +67,24 @@ def remove_header(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_message_freq_dict(messages: pd.Series, blacklist: list = []) -> dict:
     """Create dict with frequency of words."""
-    most_used_words = {}
+    # blacklist = map(str.lower, blacklist)
+    
+    translator = str.maketrans('', '', punctuation)
+    
+    most_used_words = Counter()
+    
     for message in messages:
-        for word in [word.lower() for word in message.split()]:
-            word = word.translate(str.maketrans('', '', punctuation))
-            if word not in blacklist and word != "":
-                if word not in most_used_words:
-                    most_used_words[word] = 0
-                most_used_words[word] += 1
-    return most_used_words
+        words = (word.translate(translator).lower() 
+                for word in message.split())
+        valid_words = (word for word in words 
+                      if word                           # Not empty
+                      and len(word) > 2                 # Skip very short words
+                      and not word.isdigit()           # Skip numbers
+                      and word not in blacklist)   # Not in blacklist
+        
+        most_used_words.update(valid_words)
+    
+    return dict(most_used_words)
 
 
 def concentrate_values(in_dict: dict, max_values: int, others: bool, lang="en") -> dict:
