@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function checkBackendHealth() {
     try {
-      console.log('Checking backend health...');
+      // console.log('Checking backend health...');
       const response = await fetch(`${API_URL}/health`, {
         method: 'GET',
         mode: 'cors'
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      console.log('Backend health status:', data);
+      // console.log('Backend health status:', data);
 
       if (data.status === 'ok') {
         submitBtn.disabled = false;
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      console.log(`Polling progress for request ${requestId}...`);
+      // console.log(`Polling progress for request ${requestId}...`);
       const response = await fetch(`${API_URL}/progress/${requestId}`, {
         method: 'GET',
         mode: 'cors'
@@ -75,14 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      console.log('Progress update:', data);
+      // console.log('Progress update:', data);
 
       // Update progress display
       updateProgressDisplay(data);
 
       // When complete, download the PDF
       if (data.status === 'completed') {
-        console.log('PDF generation complete, downloading...');
+        // console.log('PDF generation complete, downloading...');
         clearInterval(progressInterval);
         progressInterval = null;
         
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Stop polling if process errored
       if (data.status === 'error') {
-        console.log(`Progress polling stopped due to error: ${data.error}`);
+        // console.log(`Progress polling stopped due to error: ${data.error}`);
         clearInterval(progressInterval);
         progressInterval = null;
         showStatus(`Error: ${data.error}`, 'danger');
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateProgressDisplay(data) {
-    console.log('Updating progress display:', data);
+    // console.log('Updating progress display:', data);
     const statusMessages = {
       'not_started': 'Preparing to generate PDF...',
       'starting': 'Starting PDF generation...',
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function stopProgressPolling() {
-    console.log('Stopping progress polling');
+    // console.log('Stopping progress polling');
     if (progressInterval) {
       clearInterval(progressInterval);
       progressInterval = null;
@@ -192,15 +192,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const langSelect = document.getElementById('langSelect');
       formData.append('lang', langSelect.value);
 
-      console.log('Sending request to:', `${API_URL}/generate`);
+      // console.log('Sending request to:', `${API_URL}/generate`);
       const response = await fetch(`${API_URL}/generate`, {
         method: 'POST',
         body: formData,
         mode: 'cors'
       });
 
-      console.log('Response received:', response);
-      console.log('Response headers:', [...response.headers.entries()]);
+      // console.log('Response received:', response);
+      // console.log('Response headers:', [...response.headers.entries()]);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -209,10 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await response.json();
       currentRequestId = data.request_id;
-      console.log('Received request ID:', currentRequestId);
+      // console.log('Received request ID:', currentRequestId);
       
       if (currentRequestId) {
-        console.log('Starting progress polling for request:', currentRequestId);
+        // console.log('Starting progress polling for request:', currentRequestId);
         progressInterval = setInterval(() => pollProgress(currentRequestId), 1000);
         
         updateProgressDisplay({
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function showStatus(message, type) {
-    console.log(`Status update: ${type} - ${message}`);
+    // console.log(`Status update: ${type} - ${message}`);
     statusDiv.textContent = message;
   
     statusDiv.className = `alert alert-${type} show`;
