@@ -13,5 +13,3 @@ services:
         value: https://whatsapp-wrapped-delta.vercel.app
       - key: WEBSITE_URL
         value: https://whatsapp-wrapped-delta.vercel.app 
-      - key: DATABASE_URL
-          value: postgresql://whatsapp_wrapped_db_user:1zKIgj34gWughTg1dGWqJGK3zqxryZrN@dpg-d2mrhfbipnbc73f8pa1g-a/whatsapp_wrapped_db
