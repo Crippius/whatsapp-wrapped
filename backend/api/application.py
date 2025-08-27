@@ -1,39 +1,44 @@
 import os, sys
-os.environ['MPLBACKEND'] = 'Agg'  # Set backend through env var before any imports
+os.environ['MPLBACKEND'] = 'Agg'  # Use non-interactive backend for matplotlib
 import warnings
 warnings.simplefilter('ignore')  # Ignore all warnings
 
-from pathlib import Path
-import platform
-from datetime import datetime
-from collections import defaultdict
+import uuid
+import time
 import traceback
 import threading
-import time
-from flask import Flask, request, send_file, jsonify, make_response
-from flask_cors import CORS
-import uuid
-import sqlite3
+from pathlib import Path
 from datetime import datetime
-import matplotlib
+from collections import defaultdict
 
+from flask_cors import CORS
+from flask import Flask, request, send_file, jsonify, Response
+
+import matplotlib
 matplotlib.use('Agg', force=True)
-matplotlib.set_loglevel('critical') 
+matplotlib.set_loglevel('critical')  
 
 backend_dir = str(Path(__file__).parent.parent)
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
+from src.seeds import *
 from src.pdf.constructor import PDF_Constructor
 from src.db import init_db, save_pdf_generation, save_chat_analytics
-from src.seeds import *
 
 
 
 SERVER_START_TIME = datetime.now()
 
+TEMP_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'temp')
+PDF_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'pdfs')
+
+os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(PDF_DIR, exist_ok=True)
+
 app = Flask(__name__)
 
+# Enable CORS for specified origins
 CORS(app, resources={
     r"/*": {
         "origins": ["https://whatsapp-wrapped-delta.vercel.app", "http://localhost:8080", "http://whatsapp-wrapped.it"],
@@ -42,13 +47,6 @@ CORS(app, resources={
         "expose_headers": ["Content-Disposition", "Content-Type", "X-Request-ID"]
     }
 })
-
-TEMP_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'temp')
-PDF_DIR = '/tmp' if os.getenv('RENDER') else str(Path(__file__).parent.parent / 'pdfs')
-
-os.makedirs(TEMP_DIR, exist_ok=True)
-os.makedirs(PDF_DIR, exist_ok=True)
-
 
 # Database setup
 init_db()
@@ -60,8 +58,11 @@ pdf_progress = defaultdict(lambda: {
     "pdf_path": None
 })
 
-def monitor_progress(request_id, pdf):
-    """Monitor the progress of PDF generation in a separate thread"""
+def monitor_progress(request_id: str, pdf: PDF_Constructor) -> None:
+    """Monitor the progress of PDF generation in a separate thread
+    :param request_id: the id of the request
+    :param pdf: the PDF_Constructor instance
+    """
     try:
         while pdf_progress[request_id]["status"] == "generating":
             current_progress = pdf.load
@@ -73,11 +74,12 @@ def monitor_progress(request_id, pdf):
     except Exception as e:
         print(f"[{request_id}] Progress monitoring error: {str(e)}\n{traceback.format_exc()}")
 
-def generate_pdf(request_id, file_path, lang):
+
+def generate_pdf(request_id: str, file_path: str, lang: str) -> None:
     """Background thread to generate the PDF
-    request_id: the id of the request
-    file_path: the path of the file to generate the PDF from
-    lang: the language of the PDF
+    :param request_id: the id of the request
+    :param file_path: the path of the file to generate the PDF from
+    :param lang: the language of the PDF
     """
     print(f"[{request_id}] Starting PDF generation for file: {os.path.basename(file_path)}, language: {lang}")
     start_time = time.time()
@@ -94,6 +96,7 @@ def generate_pdf(request_id, file_path, lang):
         )
         monitor_thread.start()
         
+        # Actual PDF generation steps
         seed1(pdf)
         
         print(f"[{request_id}] PDF processing complete, finalizing")
@@ -135,9 +138,11 @@ def generate_pdf(request_id, file_path, lang):
             os.remove(file_path)
 
 @app.post("/generate")
-def generate():
+def generate() -> Response:
     """
     Main function to generate the PDF
+    
+    :return: JSON response with request ID and status
     """
     try:
         if 'chat' not in request.files:
@@ -180,24 +185,30 @@ def generate():
         }), 500
 
 @app.get("/progress/<request_id>")
-def get_progress(request_id):
-    """Get the progress of the PDF generation"""
+def get_progress(request_id: str) -> Response:
+    """Get the progress of the PDF generation
+    
+    :param request_id: the id of the request
+    :return: JSON response with progress details"""
     if request_id not in pdf_progress:
         return jsonify({
             "error": "Request ID not found"
         }), 404
         
     progress_data = pdf_progress[request_id].copy()
-    
-    # Remove internal data before sending
+     
     if "pdf_path" in progress_data:
         del progress_data["pdf_path"]
         
     return jsonify(progress_data)
 
 @app.get("/download/<request_id>")
-def download_pdf(request_id):
-    """Download the PDF"""
+def download_pdf(request_id) -> Response:
+    """Download the PDF
+    
+    :param request_id: the id of the request
+    :return: the PDF file or error message"""
+
     if request_id not in pdf_progress:
         return jsonify({
             "error": "PDF not found"
@@ -227,7 +238,11 @@ def download_pdf(request_id):
     )
 
 @app.get("/health")
-def health():
+def health() -> Response:
+    """Health check endpoint
+    
+    :return: JSON response with health status"""
+    
     temp_ok = os.path.exists(TEMP_DIR) and os.access(TEMP_DIR, os.W_OK)
     pdf_ok = os.path.exists(PDF_DIR) and os.access(PDF_DIR, os.W_OK)
 

@@ -48,12 +48,9 @@ whatsapp-wrapped/
 │   │   ├── pdf/                           # PDF generation logic
 │   │   │   ├── constructor.py             # PDF_Constructor class and PDF logic
 │   │   │   └── plots.py                   # Plotting functions (matplotlib, wordcloud, etc.)
-│   │   ├── data/                          # Data extraction and cleaning
-│   │   │   └── parser.py                  # Parsing exported WhatsApp chats
 │   │   ├── seeds.py                       # Seeds/templates for PDF content
 │   │   ├── utils.py                       # Utility functions
-│   │   ├── db.py                          # Database functions
-│   │   └── flask_classes.py               # Flask forms and validators
+│   │   └── db.py                          # Database functions
 │   ├── static/                            # Backend static assets (if any)
 │   ├── pdfs/                              # Generated PDF files (backend-run)
 │   ├── text_files/                        # Uploaded WhatsApp chat files (backend)

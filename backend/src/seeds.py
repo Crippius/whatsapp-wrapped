@@ -1,7 +1,4 @@
-# Here are some seeds that can be used to create PDF
-# obviously since 
-
-from random import randint
+"""Seeds/templates for PDF content."""
 
 import sys
 from pathlib import Path
@@ -13,6 +10,7 @@ sys.path.append(str(utilities_dir.parent))
 from src.pdf.constructor import PDF_Constructor 
 
 def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages (for group chats)
+    """Seed function for group chat analysis PDF."""
     
     pdf.add_number_of_messages_plot(interval="day", pos="left")
 
@@ -36,6 +34,7 @@ def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages 
 
 
 def seed2(pdf:PDF_Constructor): # Another possible combination (Made exclusively for private chats)
+    """Seed function for private chat analysis PDF."""
 
     pdf.add_emoji_plot("left", who=pdf.name[0])
 

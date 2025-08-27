@@ -80,7 +80,13 @@ def init_db():
 
 
 def save_pdf_generation(request_id: str, language: str, status: str, processing_time_ms: Optional[int], error: Optional[str] = None) -> None:
-    """Insert or update a pdf_generation record."""
+    """Insert or update a pdf_generation record.
+    
+    :param request_id: unique ID for the request
+    :param language: language code used for the PDF generation
+    :param status: status of the generation ('started', 'completed', 'failed')
+    :param processing_time_ms: processing time in milliseconds (None if not completed)
+    :param error: error message if status is 'failed'"""
     conn = _get_connection()
     try:
         c = conn.cursor()
@@ -116,7 +122,10 @@ def save_pdf_generation(request_id: str, language: str, status: str, processing_
 
 
 def save_chat_analytics(request_id: str, analytics: dict) -> None:
-    """Persist anonymous chat analytics aggregates for a request."""
+    """Persist anonymous chat analytics aggregates for a request.
+    
+    :param request_id: unique ID for the request
+    :param analytics: dictionary containing analytics data"""
     conn = _get_connection()
     try:
         c = conn.cursor()

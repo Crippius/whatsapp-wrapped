@@ -2,23 +2,21 @@
 PDF construction logic for WhatsApp Wrapped.
 """
 
-import os
 import re
 import pandas as pd
 from fpdf import FPDF
 from datetime import date, timedelta
 from os import path, getenv, makedirs, remove
-from src.utils import font_friendly, transform_text, check_text, get_data_file_path
-from src.data.parser import get_data, remove_header, get_message_freq_dict, sort_dict, max_and_index
-from src.pdf.plots import (
-    plot_emojis, plot_number_of_messages, plot_day_of_the_week, plot_most_used_words, plot_most_active_people, plot_time_of_messages
-)
 
-
+import pandas as pd
+import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 from matplotlib import rcParams
 
+from src.utils import * 
+from src.pdf.plots import *
 
+# PDF dimensions and layout constants
 HEIGHT = 297
 WIDTH = 210
 GREEN_POS = 108
@@ -43,9 +41,15 @@ makedirs(OUTPUT, exist_ok=True)
 
 
 class PDF_Constructor(FPDF):
+    """Class to construct the PDF with all the plots and messages."""
+
     img_path = path.join(BASE_DIR, '../../static/')
 
-    def __init__(self, file: str, lang="en"):
+    def __init__(self, file: str, lang: str = "en") -> None:
+        """Initialize the PDF constructor.
+        
+        :param file: path to the WhatsApp chat text file
+        :param lang: language of the PDF ("en" or "it")"""
         
         # Prepare the file
         if not path.exists(file):
@@ -69,10 +73,9 @@ class PDF_Constructor(FPDF):
         self.lang = lang
 
         # Prepare the dataframe
-        self.df = pd.DataFrame(get_data(file, font_friendly=font_friendly), columns=["date", "time", "who", "message"])
+        self.df = pd.DataFrame(get_data(file), columns=["date", "time", "who", "message"])
         self.df.date = pd.to_datetime(self.df.date, format="%d/%m/%y")
         self.df.time = pd.to_timedelta(self.df.time)
-        self.df = remove_header(self.df)
         self.group = True
         if len(set(self.df.who)) == 3 and "info" in set(self.df.who):
             self.group = False
@@ -93,8 +96,9 @@ class PDF_Constructor(FPDF):
         self.set_font('seguiemj', '', 16)
         self.add_structure()
 
-    def add_structure(self):
-        # Add the template structure of the PDF
+    def add_structure(self) -> None:
+        """Add the basic structure of the PDF."""
+
         self.add_page()
         self.image(path.join(PDF_Constructor.img_path, 'background.png'), x=0, y=0, w=WIDTH, h=HEIGHT)
         self.image(path.join(PDF_Constructor.img_path, 'top_level.png'), x=0, y=0, w=WIDTH)
@@ -121,23 +125,38 @@ class PDF_Constructor(FPDF):
         self.cell(0, 5, link=website_url)
         self.set_xy(x, y)
 
-    def update_counter(self):
+    def update_counter(self) -> None:
+        """Update the image counter."""
         self.counter += 1
 
-    def add_image(self, x: int, y: int):
+    def add_image(self, x: int, y: int) -> None:
+        """Add an image to the PDF.
+        
+        :param x: x position
+        :param y: y position"""
         self.image(path.join(OUTPUT, f"{self.counter}.png"), x=x, y=y, w=WIDTH/2 - 5, h=PLOT_HEIGHT)
 
-    def prep(self, plot=True):
+    def prep(self, plot: bool = True) -> bool:
+        """Prepare the PDF for adding new content.
+        
+        :param plot: whether we are adding a plot or a message
+        :return: whether the PDF is ready for new content"""
         if self.ok:
             if plot:
                 self.update_counter()
-                import matplotlib.pyplot as plt
                 plt.close()
             return True
         else:
             return False
 
     def update_y(self, pos: str, obj: str, lines: str = "one") -> int:
+        """Update the y position for the next object.
+        
+        :param pos: "left" or "right" position on the PDF
+        :param obj: "message" or "plot"
+        :param lines: if obj is "message", how many lines the message bubble has ("one", "two" or "three")
+        :return: the new y position"""
+        
         mess_dict = {"one": 12, "two": 20, "three": 25}
         obj_dict = {(None, "message"): 30, (None, "plot"): 20,
                     ("plot", "message"): 80, ("plot", "plot"): 75,
@@ -150,49 +169,97 @@ class PDF_Constructor(FPDF):
         return self.pos[pos]
 
 
-    def add_emoji_plot(self, pos, who="", reverse=False, info=True):
+    def add_emoji_plot(self, pos: str, who: str = "", reverse: bool = False, info: bool = True) -> None:
+        """Add the emoji usage plot to the PDF.
+        
+        :param pos: "left" or "right" position on the PDF
+        :param who: name of the person to plot (empty for all)
+        :param reverse: whether to reverse the order of the emojis
+        :param info: whether to add the info about the plot"""
+
         if not self.prep():
             return
         plot_emojis(self.df, OUTPUT, lang=self.lang, who=who, reverse=reverse, info=info, counter=self.counter)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
 
-    def add_number_of_messages_plot(self, pos, interval="day"):
+    def add_number_of_messages_plot(self, pos: str, interval: str = "day") -> None:
+        """Add the number of messages plot to the PDF.
+        
+        :param pos: "left" or "right" position on the PDF
+        :param interval: interval for the plot ("day", "week", "month", "year")"""
+
         if not self.prep():
             return
         plot_number_of_messages(self.df, OUTPUT, lang=self.lang, interval=interval, counter=self.counter)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
 
-    def add_day_of_the_week_plot(self, pos):
+    def add_day_of_the_week_plot(self, pos:str):
+        """Add the day of the week plot to the PDF.
+        
+        :param pos: "left" or "right" position on the PDF"""
+
         if not self.prep():
             return
         plot_day_of_the_week(self.df, OUTPUT, lang=self.lang, counter=self.counter)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
-    def add_most_used_words_plot(self, pos, wordcloud=True):
+    def add_most_used_words_plot(self, pos:str, wordcloud: bool = True) -> None:
+        """Add the most used words plot to the PDF.
+        
+        :param pos: "left" or "right" position on the PDF
+        :param wordcloud: whether to use a wordcloud or a bar plot"""
         if not self.prep():
             return
         plot_most_used_words(self.df, OUTPUT, lang=self.lang, wordcloud=wordcloud, counter=self.counter)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
-    def add_most_active_people_plot(self, pos):
+    def add_most_active_people_plot(self, pos:str) -> None:
+        """Add the most active people plot to the PDF.
+        
+        :param pos: "left" or "right" position on the PDF"""
+
         if not self.prep():
             return
         plot_most_active_people(self.df, OUTPUT, lang=self.lang, group=self.group, name=self.name, counter=self.counter)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
-    def add_time_of_messages_plot(self, pos):
+    def add_time_of_messages_plot(self, pos:str) -> None:
+        """Add the time of messages plot to the PDF.
+        
+        :param pos: "left" or "right" position on the PDF"""
+
         if not self.prep():
             return
         plot_time_of_messages(self.df, OUTPUT, lang=self.lang, counter=self.counter)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
     def add_message(self, cat: str, pos: str) -> None:
+        """Add a message bubble to the PDF.
+        Possible categories are:
+        - message_count
+        - active_days
+        - messages_per_day
+        - file_count
+        - most_active_day
+        - most_active_year
+        - most_active_month
+        - most_active_weekday
+        - most_active_person
+        - longest_active_streak
+        - longest_inactive_streak
+        - first_texter
+        - avg_response_time
+        - swear_count
+        - avg_message_length
+
+        :param cat: category of the message to add
+        :param pos: "left" or "right" position on the PDF"""
+
         if not self.prep(plot=False):
             return
-        from datetime import timedelta
-        import pandas as pd
+        
         def message_count(self):
             num = len(self.df) if len(self.df) < 39900 else '40000+'
             txt = {"en": f"{num} messages have been sent!\nYou chat so much 🤩",
@@ -344,6 +411,10 @@ class PDF_Constructor(FPDF):
         self.multi_cell(w=WIDTH/2-5, txt=transform_text(txt), h=5)
 
     def save(self) -> str:
+        """Save the PDF to a file and clean up temporary files.
+
+        :return: path to the saved PDF file"""
+
         if not self.prep(plot=False):
             return
         self.load = 100
@@ -371,9 +442,10 @@ class PDF_Constructor(FPDF):
         return output_path 
 
     def get_analytics(self) -> dict:
-        """Return aggregate analytics about the parsed chat."""
-        import pandas as pd
-        from datetime import date, timedelta
+        """Return aggregate analytics about the parsed chat.
+        
+        :return: dictionary with analytics"""
+        
         df = self.df
 
         total_messages = len(df)
@@ -405,7 +477,7 @@ class PDF_Constructor(FPDF):
             sum(len(str(m).split()) for m in df.message) / total_messages, 2
         ) if total_messages else 0.0
 
-        from datetime import timedelta
+        
         resp_seconds = None
         if total_messages > 1:
             deltas = (df.date + df.time).diff().dropna()

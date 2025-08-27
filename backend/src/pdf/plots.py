@@ -3,22 +3,26 @@ Plotting functions for WhatsApp Wrapped PDF generation.
 """
 
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+from matplotlib.dates import DateFormatter
 from matplotlib.font_manager import FontProperties
 from matplotlib import rcParams, font_manager
-from datetime import date, timedelta
-from wordcloud import WordCloud
-from math import pi
-import pandas as pd
-from src.utils import font_friendly, get_data_file_path
-from src.data.parser import get_message_freq_dict, sort_dict, max_and_index
-from emoji import EMOJI_DATA
+
 import os
 import nltk
+from math import pi
+import pandas as pd
+from emoji import EMOJI_DATA
 from nltk.corpus import stopwords
+from wordcloud import WordCloud
+from datetime import date, timedelta
 
-def spider_plot(categories, values):
-    """Create spider plot."""
+from src.utils import *
+
+def spider_plot(categories:list, values:list) -> None:
+    """Create spider plot.
+    
+    :param categories: list of categories (labels)
+    :param values: list of values"""
     angles = [n / float(len(categories)) * 2 * pi for n in range(len(categories))]
     angles += angles[:1]
     values += values[:1]
@@ -36,8 +40,12 @@ def spider_plot(categories, values):
     ax.fill(angles, values, alpha=0.5, color="#26d367")
 
 
-def inverted_barh_plot(y, x):
-    """Invert barh plot (right to left)."""
+def inverted_barh_plot(y:int, x:int):
+    """Invert barh plot (right to left).
+    
+    :param y: list of y values
+    :param x: list of x values"""
+
     fig, ax = plt.subplots()
     ax.barh(y, x, align='center', color='#26d367')
     ax.set_yticks([])
@@ -49,8 +57,15 @@ def inverted_barh_plot(y, x):
     ax2.set_yticks(y)
 
 
-def add_labels_to_bar(plot, labels, font_size=18, dir="vertical", pos="external"):
-    """Add auxiliary labels near the sides of the bars."""
+def add_labels_to_bar(plot, labels: list, font_size: int = 18, dir: str = "vertical", pos: str = "external") -> None:
+    """Add auxiliary labels near the sides of the bars.
+    
+    :param plot: bar plot object
+    :param labels: list of labels to add
+    :param font_size: font size of the labels
+    :param dir: "vertical" or "horizontal"
+    :param pos: "external" or "internal" (only for horizontal)"""
+
     if dir == "vertical":
         plt.ylim(0, plt.ylim()[1]+plt.ylim()[1]/10)
         maxi = max([rect1.get_height() for rect1 in plot])
@@ -82,8 +97,17 @@ def add_labels_to_bar(plot, labels, font_size=18, dir="vertical", pos="external"
     return
 
 
-def plot_emojis(df, output_path, lang="en", who="", reverse=False, info=True, counter=0):
-    """Plot most used emojis in chat and save to output_path."""
+def plot_emojis(df:pd.DataFrame, output_path:str, lang:str = "en", who:str = "", reverse:bool = False, info: bool = True, counter: int = 0) -> None:
+    """Plot most used emojis in chat and save to output_path.
+    
+    :param df: DataFrame containing chat data
+    :param output_path: path to save the plot
+    :param lang: language for titles and labels ("en" or "it")
+    :param who: filter emojis by specific user (default is all users)
+    :param reverse: reverse the order of the bars (default is False)
+    :param info: whether to display total number of emojis used (default is True)
+    :param counter: counter for naming the output file
+    """
     
     font_path = get_data_file_path('my_fonts/seguiemj.ttf')
     try:
@@ -103,7 +127,7 @@ def plot_emojis(df, output_path, lang="en", who="", reverse=False, info=True, co
     for skin in ["🏻", "🏼"]:
         if skin in emojis:
             emojis.pop(skin)
-    from src.data.parser import sort_dict
+    
     emojis = sort_dict(emojis, 7, reverse=reverse, others=False, lang=lang)
     if len(emojis.keys()) == 0:
         emojis["🏼"] = 0
@@ -131,19 +155,27 @@ def plot_emojis(df, output_path, lang="en", who="", reverse=False, info=True, co
     plt.close()
 
 
-def plot_number_of_messages(df, output_path, lang="en", interval="day", counter=0):
-    """Plot number of messages per interval and save to output_path."""
-    import os
+def plot_number_of_messages(df:pd.DataFrame, output_path:str, lang: str = "en", interval:str = "day", counter:int = 0) -> None:
+    """Plot number of messages per interval and save to output_path.
+    
+    :param df: DataFrame containing chat data
+    :param output_path: path to save the plot
+    :param lang: language for titles and labels ("en" or "it")
+    :param interval: time interval for grouping messages ("day", "week", "month", "year")
+    :param counter: counter for naming the output file"""
+
     x_dict = {"day": pd.date_range(df.date.iloc[0], date.today(), freq="D"),
               "week": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.Week(1), date.today(), freq="W-MON"),
               "month": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.MonthBegin(1), date.today(), freq="MS"),
               "year": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.YearBegin(1), date.today(), freq="YS")}
     if interval not in x_dict:
         return
+    
     x_pos = x_dict[interval]
     y_pos = []
     running_average = []
     window = []
+    
     for i in x_pos:
         if interval == "day":
             point = len(df[df.date == i])
@@ -159,6 +191,7 @@ def plot_number_of_messages(df, output_path, lang="en", interval="day", counter=
         window.pop(0)
         window.append(point)
         running_average.append((sum(window)) / 5)
+    
     plt.plot(x_pos, y_pos, color="#26d367")
     diff = pd.to_datetime(date.today())-df.date.iloc[0]
     if ((interval == "month" and diff > timedelta(days=360)) or
@@ -167,9 +200,10 @@ def plot_number_of_messages(df, output_path, lang="en", interval="day", counter=
         plt.plot(x_pos, running_average, color="#075e55")
         if pd.to_datetime(x_pos[-1])-pd.to_datetime(x_pos[0]) < timedelta(days=365):
             if pd.to_datetime(x_pos[-1])-pd.to_datetime(x_pos[0]) < timedelta(days=365//2):
-                plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d-%m'))
+                plt.gca().xaxis.set_major_formatter(DateFormatter('%d-%m'))
             else:
-                plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%y'))
+                plt.gca().xaxis.set_major_formatter(DateFormatter('%m-%y'))
+    
     plt.grid(axis="y")
     interval_dict = {"day": {"en": "day", "it": "giorno"}, "week": {"en": "week", "it": "settimana"},
                     "month": {"en": "month", "it": "mese"}, "year": {"en": "year", "it": "anno"}}
@@ -179,9 +213,14 @@ def plot_number_of_messages(df, output_path, lang="en", interval="day", counter=
     plt.savefig(os.path.join(output_path, f"{counter}.png"), transparent=True)
     plt.close()
 
-def plot_day_of_the_week(df, output_path, lang="en", counter=0):
-    """Plot number of messages sent per weekday and save to output_path."""
-    import os
+def plot_day_of_the_week(df:pd.DataFrame, output_path:str, lang:str = "en", counter:int = 0) -> None:
+    """Plot number of messages sent per weekday and save to output_path.
+    
+    :param df: DataFrame containing chat data
+    :param output_path: path to save the plot
+    :param lang: language for titles and labels ("en" or "it")
+    :param counter: counter for naming the output file"""
+
     weekday = {"en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
                "it": ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]}
     y_pos = [len(df[df.date.dt.day_name() == i]) for i in weekday["en"]]
@@ -192,10 +231,14 @@ def plot_day_of_the_week(df, output_path, lang="en", counter=0):
     plt.savefig(os.path.join(output_path, f"{counter}.png"), transparent=True)
     plt.close()
 
-def plot_most_used_words(df, output_path, lang="en", wordcloud=True, counter=0):
-    """Plot most used words as barplot or wordcloud and save to output_path."""
-    import os
-
+def plot_most_used_words(df:pd.DataFrame, output_path:str, lang:str = "en", wordcloud:bool = True, counter:int = 0) -> None:
+    """Plot most used words as barplot or wordcloud and save to output_path.
+    
+    :param df: DataFrame containing chat data
+    :param output_path: path to save the plot
+    :param lang: language for titles and labels ("en" or "it")
+    :param wordcloud: whether to plot a wordcloud (True) or barplot (False)
+    :param counter: counter for naming the output file"""
     
     try:
         nltk.data.find('corpora/stopwords')
@@ -218,13 +261,21 @@ def plot_most_used_words(df, output_path, lang="en", wordcloud=True, counter=0):
         plt.yticks([])
     else:
         plt.bar(list(most_used_words.keys()), most_used_words.values(), color="#26d367")
+
     title = {"en": "Most used words:", "it": "Parole più utilizzate:"}
     plt.title(title[lang])
     plt.savefig(os.path.join(output_path, f"{counter}.png"), transparent=True)
     plt.close()
 
-def plot_most_active_people(df, output_path, lang="en", group=True, name=None, counter=0):
-    """Plot most number of messages sent per person and save to output_path."""
+def plot_most_active_people(df:pd.DataFrame, output_path:str, lang:str = "en", group:bool = True, name:str = None, counter:int = 0) -> None:
+    """Plot most number of messages sent per person and save to output_path.
+    
+    :param df: DataFrame containing chat data
+    :param output_path: path to save the plot
+    :param lang: language for titles and labels ("en" or "it")
+    :param group: whether to plot a grouped barh (True) or pie chart (False)
+    :param name: name of the group (if group is True)
+    :param counter: counter for naming the output file"""
     import os
     people = {font_friendly(k): len(df[df.who == k]) for k in set(df.who)}
     if "info" in people.keys():
@@ -244,9 +295,14 @@ def plot_most_active_people(df, output_path, lang="en", group=True, name=None, c
     plt.savefig(os.path.join(output_path, f"{counter}.png"), transparent=True)
     plt.close()
 
-def plot_time_of_messages(df, output_path, lang="en", counter=0):
-    """Plot number of messages per time period and save to output_path."""
-    import os
+def plot_time_of_messages(df:pd.DataFrame, output_path:str, lang: str = "en", counter:int = 0) -> None:
+    """Plot number of messages per time period and save to output_path.
+    
+    :param df: DataFrame containing chat data
+    :param output_path: path to save the plot
+    :param lang: language for titles and labels ("en" or "it")
+    :param counter: counter for naming the output file"""
+
     title = {"en": "Number of messages per time of day:",
              "it": "Numero di messaggio per periodo del giorno:"}
     plt.title(title[lang])
