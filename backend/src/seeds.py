@@ -4,14 +4,17 @@ import sys
 from pathlib import Path
 
 current_dir = Path(__file__).resolve().parent
-utilities_dir = current_dir.parent / 'src'
+utilities_dir = current_dir.parent / "src"
 sys.path.append(str(utilities_dir.parent))
 
-from src.pdf.constructor import PDF_Constructor 
+from src.pdf.constructor import PDF_Constructor
 
-def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages (for group chats)
+
+def seed1(
+    pdf: PDF_Constructor,
+):  # One possible combination of plot and messages (for group chats)
     """Seed function for group chat analysis PDF."""
-    
+
     pdf.add_number_of_messages_plot(interval="day", pos="left")
 
     pdf.add_message(cat="most_active_day", pos="left")
@@ -33,7 +36,9 @@ def seed1(pdf:PDF_Constructor): # One possible combination of plot and messages 
     pdf.add_message(cat="avg_response_time", pos="right")
 
 
-def seed2(pdf:PDF_Constructor): # Another possible combination (Made exclusively for private chats)
+def seed2(
+    pdf: PDF_Constructor,
+):  # Another possible combination (Made exclusively for private chats)
     """Seed function for private chat analysis PDF."""
 
     pdf.add_emoji_plot("left", who=pdf.name[0])
@@ -47,7 +52,7 @@ def seed2(pdf:PDF_Constructor): # Another possible combination (Made exclusively
     pdf.add_most_active_people_plot("left")
 
 
-def seed3(pdf:PDF_Constructor):
+def seed3(pdf: PDF_Constructor):
 
     pdf.add_number_of_messages_plot(interval="month", pos="left")
 
@@ -71,7 +76,7 @@ def seed3(pdf:PDF_Constructor):
 
 
 def main():
-    
+
     file = "../text_files/Chat WhatsApp con ESEMPIO.txt"
 
     pdf = PDF_Constructor(file, lang="it")
@@ -80,8 +85,7 @@ def main():
 
     pdf.save()
 
+
 if __name__ == "__main__":
 
     main()
-
-
