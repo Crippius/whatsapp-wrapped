@@ -2,7 +2,7 @@
 PDF construction logic for WhatsApp Wrapped.
 """
 
-import os
+
 import re
 import pandas as pd
 from fpdf import FPDF
@@ -15,7 +15,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib import rcParams
 
 from src.utils import * 
-from src.pdf.plots import *
+from src.pdf.plots import Plotter
 
 # PDF dimensions and layout constants
 HEIGHT = 297
@@ -89,6 +89,9 @@ class PDF_Constructor(FPDF):
         self.pos = {"left": 0, "right": 0}
         self.last = {"left": None, "right": None}
         self.load = (self.pos["left"] / HEIGHT * self.pos["right"] / HEIGHT) * 100
+
+        # Plotter
+        self.plotter = Plotter(self.df, OUTPUT, lang)
         
         # Set the font
         prop = FontProperties(fname=get_data_file_path('my_fonts/seguiemj.ttf'))
@@ -129,6 +132,7 @@ class PDF_Constructor(FPDF):
     def update_counter(self) -> None:
         """Update the image counter."""
         self.counter += 1
+        self.plotter.update_counter()
 
     def add_image(self, x: int, y: int) -> None:
         """Add an image to the PDF.
@@ -180,7 +184,7 @@ class PDF_Constructor(FPDF):
 
         if not self.prep():
             return
-        plot_emojis(self.df, OUTPUT, lang=self.lang, who=who, reverse=reverse, info=info, counter=self.counter)
+        self.plotter.plot_emojis(who=who, reverse=reverse, info=info)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
 
@@ -192,7 +196,7 @@ class PDF_Constructor(FPDF):
 
         if not self.prep():
             return
-        plot_number_of_messages(self.df, OUTPUT, lang=self.lang, interval=interval, counter=self.counter)
+        self.plotter.plot_number_of_messages(interval=interval)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
 
@@ -203,7 +207,7 @@ class PDF_Constructor(FPDF):
 
         if not self.prep():
             return
-        plot_day_of_the_week(self.df, OUTPUT, lang=self.lang, counter=self.counter)
+        self.plotter.plot_day_of_the_week()
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
     def add_most_used_words_plot(self, pos:str, wordcloud: bool = True) -> None:
@@ -213,7 +217,7 @@ class PDF_Constructor(FPDF):
         :param wordcloud: whether to use a wordcloud or a bar plot"""
         if not self.prep():
             return
-        plot_most_used_words(self.df, OUTPUT, lang=self.lang, wordcloud=wordcloud, counter=self.counter)
+        self.plotter.plot_most_used_words(wordcloud=wordcloud)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
     def add_most_active_people_plot(self, pos:str) -> None:
@@ -223,7 +227,7 @@ class PDF_Constructor(FPDF):
 
         if not self.prep():
             return
-        plot_most_active_people(self.df, OUTPUT, lang=self.lang, group=self.group, name=self.name, counter=self.counter)
+        self.plotter.plot_most_active_people(self.group, self.name)
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
     def add_time_of_messages_plot(self, pos:str) -> None:
@@ -233,7 +237,7 @@ class PDF_Constructor(FPDF):
 
         if not self.prep():
             return
-        plot_time_of_messages(self.df, OUTPUT, lang=self.lang, counter=self.counter)
+        self.plotter.plot_time_of_messages()
         self.add_image(self.plot_pos[pos], self.update_y(pos, "plot"))
 
     def add_message(self, cat: str, pos: str) -> None:
@@ -446,10 +450,6 @@ class PDF_Constructor(FPDF):
         """Return aggregate analytics about the parsed chat.
         
         :return: dictionary with analytics"""
-        
-        import pandas as pd
-        from datetime import date, timedelta
-        from src.utils import get_daily_message_counts, get_most_used_words, get_most_used_emojis
         
         df = self.df
 
