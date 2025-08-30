@@ -5,6 +5,10 @@ import re
 import pandas as pd
 from string import punctuation
 from collections import Counter
+from datetime import date, timedelta
+import nltk
+from nltk.corpus import stopwords
+from emoji import EMOJI_DATA
 
 
 def IOS_or_Android(txt: str, regexs: dict) -> str:
@@ -198,3 +202,106 @@ def transform_text(txt: str, char_per_line: int = 50) -> str:
 def get_data_file_path(filename):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
     return os.path.join(project_root, filename)
+
+
+def get_daily_message_counts(df: pd.DataFrame, interval: str = "day") -> list:
+    """Get daily message counts from chat dataframe, matching plot_number_of_messages logic.
+    
+    :param df: pandas DataFrame with 'date' column
+    :param interval: time interval for grouping messages ("day", "week", "month", "year")
+    :return: list of tuples (day, count) sorted by date
+    """
+    if df.empty:
+        return []
+    
+    # Match the exact logic from plot_number_of_messages
+    x_dict = {"day": pd.date_range(df.date.iloc[0], date.today(), freq="D"),
+              "week": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.Week(1), date.today(), freq="W-MON"),
+              "month": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.MonthBegin(1), date.today(), freq="MS"),
+              "year": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.YearBegin(1), date.today(), freq="YS")}
+    
+    if interval not in x_dict:
+        return []
+    
+    x_pos = x_dict[interval]
+    daily_counts = []
+    
+    for i in x_pos:
+        if interval == "day":
+            point = len(df[df.date == i])
+        elif interval == "week":
+            point = len(df[df.date - df.date.dt.weekday * timedelta(days=1) == i])
+        elif interval == "month":
+            point = len(df[df.date.dt.to_period('M').dt.to_timestamp() == i])
+        elif interval == "year":
+            point = len(df[df.date.dt.to_period('Y').dt.to_timestamp() == i])
+        daily_counts.append((str(i), point))
+    
+    return daily_counts
+
+
+def get_most_used_words(df: pd.DataFrame, max_words: int = 100, who: str = "") -> list:
+    """Get most used words from chat messages, matching plot_most_used_words logic.
+    
+    :param df: pandas DataFrame with 'message' column
+    :param max_words: maximum number of words to return
+    :param who: filter words by specific user (default is all users)
+    :return: list of tuples (word, count) sorted by frequency
+    """
+    if df.empty:
+        return []
+    
+    # Filter messages by user if specified (matching plot_emojis logic)
+    messages = df.message if who == "" or who not in df.who.unique() else df[df.who == who].message
+    
+    # Use the exact same logic as plot_most_used_words
+    try:
+        nltk.data.find('corpora/stopwords')
+    except LookupError:
+        nltk.download('stopwords')
+    
+    # Create a set of stopwords from both languages and custom blacklist
+    stop_words = set()
+    stop_words.update(stopwords.words('english'))
+    stop_words.update(stopwords.words('italian'))
+    stop_words.update(i.strip() for i in open(get_data_file_path("lists/blacklist.txt"), "r").readlines())
+    
+    most_used_words = get_message_freq_dict(messages, blacklist=list(stop_words))
+    
+    # Convert to list of tuples and limit to max_words
+    word_list = [(word, count) for word, count in most_used_words.items()]
+    word_list.sort(key=lambda x: x[1], reverse=True)
+    return word_list[:max_words]
+
+
+def get_most_used_emojis(df: pd.DataFrame, max_emojis: int = 15, who: str = "") -> list:
+    """Get most used emojis from chat messages, matching plot_emojis logic exactly.
+    
+    :param df: pandas DataFrame with 'message' column
+    :param max_emojis: maximum number of emojis to return
+    :param who: filter emojis by specific user (default is all users)
+    :return: list of tuples (emoji, count) sorted by frequency
+    """
+    if df.empty:
+        return []
+    
+    # Filter messages by user if specified (matching plot_emojis logic)
+    messages = df.message if who == "" or who not in df.who.unique() else df[df.who == who].message
+    
+    # Use the exact same logic as plot_emojis
+    emojis = {}
+    for message in messages:
+        for char in message:
+            if char in EMOJI_DATA:
+                if char not in emojis:
+                    emojis[char] = 0
+                emojis[char] += 1
+    
+    for skin in ["🏻", "🏼"]:
+        if skin in emojis:
+            emojis.pop(skin)
+    
+    # Sort and limit to max_emojis
+    emoji_list = [(emoji, count) for emoji, count in emojis.items()]
+    emoji_list.sort(key=lambda x: x[1], reverse=True)
+    return emoji_list[:max_emojis]

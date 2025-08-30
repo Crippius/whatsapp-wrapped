@@ -2,6 +2,7 @@
 PDF construction logic for WhatsApp Wrapped.
 """
 
+import os
 import re
 import pandas as pd
 from fpdf import FPDF
@@ -446,6 +447,10 @@ class PDF_Constructor(FPDF):
         
         :return: dictionary with analytics"""
         
+        import pandas as pd
+        from datetime import date, timedelta
+        from src.utils import get_daily_message_counts, get_most_used_words, get_most_used_emojis
+        
         df = self.df
 
         total_messages = len(df)
@@ -488,6 +493,11 @@ class PDF_Constructor(FPDF):
                 iqr_mean = sum(deltas.iloc[first_q:last_q], timedelta(0)) / denom / 2
                 resp_seconds = int(iqr_mean.total_seconds())
 
+        # Use utility functions for complex analytics
+        daily_message_counts = get_daily_message_counts(df, interval="day")
+        most_used_words = get_most_used_words(df, max_words=100)
+        most_used_emojis = get_most_used_emojis(df, max_emojis=15)
+
         return {
             "total_messages": total_messages,
             "participants_count": participants_count,
@@ -502,4 +512,7 @@ class PDF_Constructor(FPDF):
             "avg_message_length_words": avg_message_length_words,
             "response_seconds_typical": resp_seconds,
             "lang": self.lang,
+            "daily_message_counts": daily_message_counts,
+            "most_used_words": most_used_words,
+            "most_used_emojis": most_used_emojis,
         }

@@ -116,21 +116,13 @@ def plot_emojis(df:pd.DataFrame, output_path:str, lang:str = "en", who:str = "",
         pass
     prop = FontProperties(fname=font_path)
     rcParams['font.family'] = prop.get_name()
-    messages = df.message if who == "" or who not in df.who.unique() else df[df.who == who].message
-    emojis = {}
-    for message in messages:
-        for char in message:
-            if char in EMOJI_DATA:
-                if char not in emojis:
-                    emojis[char] = 0
-                emojis[char] += 1
-    for skin in ["🏻", "🏼"]:
-        if skin in emojis:
-            emojis.pop(skin)
     
+    emoji_data = get_most_used_emojis(df, max_emojis=7, who=who)
+    emojis = {emoji: count for emoji, count in emoji_data}
     emojis = sort_dict(emojis, 7, reverse=reverse, others=False, lang=lang)
     if len(emojis.keys()) == 0:
         emojis["🏼"] = 0
+    
     title = {"en": "Most used Emojis:", "it": "Emoji più utilizzate:"}
     fig, ax = plt.subplots()
     ax.set_title(title[lang])
@@ -164,30 +156,18 @@ def plot_number_of_messages(df:pd.DataFrame, output_path:str, lang: str = "en", 
     :param interval: time interval for grouping messages ("day", "week", "month", "year")
     :param counter: counter for naming the output file"""
 
-    x_dict = {"day": pd.date_range(df.date.iloc[0], date.today(), freq="D"),
-              "week": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.Week(1), date.today(), freq="W-MON"),
-              "month": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.MonthBegin(1), date.today(), freq="MS"),
-              "year": pd.date_range(df.date.iloc[0]-pd.tseries.offsets.YearBegin(1), date.today(), freq="YS")}
-    if interval not in x_dict:
+    daily_counts = get_daily_message_counts(df, interval=interval)
+    if not daily_counts:
         return
+    x_pos = [pd.to_datetime(day) for day, _ in daily_counts]
+    y_pos = [count for _, count in daily_counts]
     
-    x_pos = x_dict[interval]
-    y_pos = []
     running_average = []
     window = []
     
-    for i in x_pos:
-        if interval == "day":
-            point = len(df[df.date == i])
-        elif interval == "week":
-            point = len(df[df.date - df.date.dt.weekday * timedelta(days=1) == i])
-        elif interval == "month":
-            point = len(df[df.date.dt.to_period('M').dt.to_timestamp() == i])
-        elif interval == "year":
-            point = len(df[df.date.dt.to_period('Y').dt.to_timestamp() == i])
+    for i, point in enumerate(y_pos):
         if len(window) == 0:
             window = [point*(5)**(-1)]*5
-        y_pos.append(point)
         window.pop(0)
         window.append(point)
         running_average.append((sum(window)) / 5)
@@ -240,18 +220,9 @@ def plot_most_used_words(df:pd.DataFrame, output_path:str, lang:str = "en", word
     :param wordcloud: whether to plot a wordcloud (True) or barplot (False)
     :param counter: counter for naming the output file"""
     
-    try:
-        nltk.data.find('corpora/stopwords')
-    except LookupError:
-        nltk.download('stopwords')
+    most_used_words_data = get_most_used_words(df, max_words=100)    
+    most_used_words = {word: count for word, count in most_used_words_data}
     
-    # Create a set of stopwords from both languages and custom blacklist
-    stop_words = set()
-    stop_words.update(stopwords.words('english'))
-    stop_words.update(stopwords.words('italian'))
-    stop_words.update(i.strip() for i in open(get_data_file_path("lists/blacklist.txt"), "r").readlines())
-    
-    most_used_words = get_message_freq_dict(df.message, blacklist=list(stop_words))
     if wordcloud:
         plot = WordCloud(width=400, height=300, max_words=100, stopwords=stopwords, min_font_size=6,
                          background_color=None, mode="RGBA", colormap="summer").generate_from_frequencies(most_used_words)
