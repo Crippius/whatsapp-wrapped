@@ -599,14 +599,6 @@ class PDF_Constructor(FPDF):
                 INPUT,
                 f"Chat WhatsApp_con_{self.name if type(self.name) != tuple else self.name[0]}.txt",
             ),
-            path.join(
-                INPUT,
-                f"WhatsApp Chat - {self.name if type(self.name) != tuple else self.name[0]}.zip",
-            ),
-            path.join(
-                INPUT,
-                f"WhatsApp_Chat_-_{self.name if type(self.name) != tuple else self.name[0]}.zip",
-            ),
             path.join(INPUT, "_chat.txt"),
         ]
         for file_path in possibilities:

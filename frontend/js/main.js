@@ -181,6 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const file = fileInput.files[0];
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      showStatus('Please select a .txt file only', 'danger');
+      return;
+    }
+
     try {
       stopProgressPolling();
       loadingDiv.innerHTML = '';

@@ -18,7 +18,8 @@ Transform your WhatsApp chat history into a beautiful PDF report filled with int
 4. Choose **Export chat**
 5. Select **Without media**
 6. Save the file to your device
-7. Upload it to WhatsApp Wrapped!
+7. Extract the .zip file
+8. Upload the .txt file to WhatsApp Wrapped!
 
 ## 🎨 Features
 
