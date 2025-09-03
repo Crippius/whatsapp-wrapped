@@ -26,7 +26,11 @@ def IOS_or_Android(txt: str, regexs: dict) -> str:
     for regex in regexs["Android"].values():
         if re.search(regex, txt) is not None:
             return "Android"
-    return "IDK"
+        
+    if len(txt) < 50:
+        raise ValueError(f"Couldn't detect which device was used. Anonymous text:\n{txt}")
+    else:
+        raise ValueError(f"Couldn't detect which device was used. Anonymous text:\n{txt[:50]}")
 
 
 def get_data(file: str) -> list:
