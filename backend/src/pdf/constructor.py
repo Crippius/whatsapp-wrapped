@@ -76,7 +76,7 @@ class PDF_Constructor(FPDF):
         self.df = pd.DataFrame(
             get_data(file), columns=["date", "time", "who", "message"]
         )
-        self.df.date = pd.to_datetime(self.df.date, format="%d/%m/%y")
+        self.df.date = pd.to_datetime(self.df.date, format='mixed', dayfirst=True)
         self.df.time = pd.to_timedelta(self.df.time)
         self.group = True
         if len(set(self.df.who)) == 3 and "info" in set(self.df.who):
