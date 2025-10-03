@@ -14,6 +14,18 @@ except Exception:
 
 # Database path configuration compatible with Render and local dev
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+# Parse and validate DATABASE_URL if present
+if DATABASE_URL:
+    try:
+        url = urlparse.urlparse(DATABASE_URL)
+        if not url.hostname or not url.password or not url.username or not url.path:
+            print("[DB] Warning: Invalid DATABASE_URL format")
+            DATABASE_URL = ""
+    except Exception as e:
+        print(f"[DB] Warning: Could not parse DATABASE_URL: {e}")
+        DATABASE_URL = ""
+
 USE_POSTGRES = DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith(
     "postgresql://"
 )
@@ -29,8 +41,18 @@ SQLITE_PATH = (
 def _get_connection():
     """Return a DB connection depending on environment."""
     if USE_POSTGRES and HAS_PG:
-        print("[DB] Using PostgreSQL")
-        return psycopg2.connect(DATABASE_URL)
+        try:
+            print("[DB] Attempting PostgreSQL connection...")
+            conn = psycopg2.connect(
+                DATABASE_URL,
+                connect_timeout=5  # 5 seconds timeout
+            )
+            print("[DB] Successfully connected to PostgreSQL")
+            return conn
+        except Exception as e:
+            print(f"[DB] PostgreSQL connection failed: {e}")
+            print("[DB] Falling back to SQLite")
+            return sqlite3.connect(SQLITE_PATH)
     print("[DB] Using SQLite")
     return sqlite3.connect(SQLITE_PATH)
 
